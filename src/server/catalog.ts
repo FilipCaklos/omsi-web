@@ -451,10 +451,12 @@ export async function getCatalogFacets(locale: AppLocale, categoryId: string | n
   };
 }
 
-export async function findCategoryBySlug(slug: string): Promise<{ id: string; nameSk: string; nameCs: string } | null> {
+export async function findCategoryBySlug(
+  slug: string,
+): Promise<{ id: string; nameSk: string; nameCs: string; descriptionSk: string; descriptionCs: string } | null> {
   return db().category.findFirst({
     where: { slug, isActive: true },
-    select: { id: true, nameSk: true, nameCs: true },
+    select: { id: true, nameSk: true, nameCs: true, descriptionSk: true, descriptionCs: true },
   });
 }
 

@@ -29,7 +29,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: locale === "cs" ? "cs_CZ" : "sk_SK",
       alternateLocale: locale === "cs" ? ["sk_SK"] : ["cs_CZ"],
     },
-    robots: { index: true, follow: true },
+    keywords: ["OMSI 2", "OMSI mody", "OMSI mapy", "OMSI autobusy", "repainty", "HOF", "Karosa", "SOR", "OMSI 2 Slovensko", "OMSI 2 Česko", "openOMSI"],
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+    // Overenie vlastníctva v Google Search Console / Bing Webmaster Tools (meta značka)
+    verification: {
+      google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+      other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+    },
   };
 }
 

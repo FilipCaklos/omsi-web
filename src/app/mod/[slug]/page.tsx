@@ -28,7 +28,9 @@ import { Gallery } from "@/components/mod/gallery";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
+import { JsonLd, absoluteUrl, breadcrumbList } from "@/components/seo/json-ld";
 import { getDictionary } from "@/i18n/server";
+import { env } from "@/lib/env";
 import { db } from "@/lib/db";
 import { formatDate, formatNumber, plural } from "@/lib/format";
 import { OPEN_OMSI_URL, worksInOpenOmsi } from "@/lib/open-omsi";
@@ -60,6 +62,46 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     },
     twitter: { card: image ? "summary_large_image" : "summary" },
   };
+}
+
+/** schema.org SoftwareApplication – Google zobrazí hodnotenie, verziu a „zadarmo“ priamo vo výsledkoch. */
+function modStructuredData(mod: ModDetail, t: Dictionary): Record<string, unknown>[] {
+  const base = env().APP_URL;
+  const url = absoluteUrl(base, `/mod/${mod.slug}`);
+  const main = mod.center.main;
+  const app: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: mod.title,
+    description: mod.summary,
+    url,
+    image: mod.images.slice(0, 5).map((i) => absoluteUrl(base, `/api/media/${i.id}?variant=full`)),
+    applicationCategory: "GameApplication",
+    applicationSubCategory: mod.category.name,
+    operatingSystem: "Windows",
+    softwareRequirements: "OMSI 2",
+    ...(mod.currentVersion ? { softwareVersion: mod.currentVersion.replace(/^v/i, "") } : {}),
+    ...(main ? { fileSize: `${(main.sizeBytes / 1024 / 1024).toFixed(1)} MB` } : {}),
+    ...(mod.publishedAt ? { datePublished: mod.publishedAt.toISOString() } : {}),
+    ...(mod.lastUpdatedAt ? { dateModified: mod.lastUpdatedAt.toISOString() } : {}),
+    ...(mod.tags.length > 0 ? { keywords: mod.tags.join(", ") } : {}),
+    author: { "@type": "Person", name: mod.author.name, url: absoluteUrl(base, `/autor/${mod.author.username}`) },
+    offers: { "@type": "Offer", price: "0", priceCurrency: "EUR", availability: "https://schema.org/InStock" },
+    interactionStatistic: {
+      "@type": "InteractionCounter",
+      interactionType: "https://schema.org/DownloadAction",
+      userInteractionCount: mod.downloadCount,
+    },
+    ...(mod.ratingCount > 0
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: mod.ratingAvg.toFixed(1), ratingCount: mod.ratingCount, bestRating: 5, worstRating: 1 } }
+      : {}),
+  };
+  const crumbs = breadcrumbList(base, [
+    { name: t.header.catalog, path: "/mody" },
+    { name: mod.category.name, path: `/mody?kategoria=${mod.category.slug}` },
+    { name: mod.title, path: `/mod/${mod.slug}` },
+  ]);
+  return [app, crumbs];
 }
 
 function Section({ id, title, Icon, children }: { id: string; title: string; Icon: typeof Info; children: React.ReactNode }) {
@@ -297,6 +339,7 @@ export default async function ModPage({ params }: Params) {
     <>
       <SiteHeader />
       <main id="obsah" className="mx-auto max-w-[1320px] px-4 pt-5">
+        {mod.status === "PUBLISHED" && <JsonLd data={modStructuredData(mod, t)} />}
         <nav aria-label={t.header.breadcrumb} className="mb-3 flex flex-wrap items-center gap-1 text-xs text-muted">
           <Link href="/mody" className="hover:text-text">{t.header.catalog}</Link>
           <ChevronRight size={12} aria-hidden />

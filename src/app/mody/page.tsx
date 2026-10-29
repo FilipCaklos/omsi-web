@@ -62,9 +62,15 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   const params = await parse(searchParams);
   const category = params.kategoria ? await findCategoryBySlug(params.kategoria) : null;
   const name = category ? (locale === "cs" ? category.nameCs : category.nameSk) : t.search.title;
+  const description = category ? (locale === "cs" ? category.descriptionCs : category.descriptionSk) : "";
+  // Do indexu iba čisté stránky katalógu a kategórií; vyhľadávanie a kombinácie filtrov nie (duplicitný obsah)
+  const raw = await searchParams;
+  const filtered = Boolean(params.q || params.znacka || params.dopravca || params.bez4gb || params.openomsi || params.zoradit) || Object.keys(raw).some((k) => k.startsWith("p_"));
   return {
-    title: params.q ? `${t.search.resultsFor} „${params.q}“` : name,
-    robots: { index: !params.q && !params.znacka && !params.dopravca, follow: true },
+    title: params.q ? `${t.search.resultsFor} „${params.q}“` : `${name} – OMSI 2`,
+    ...(description ? { description } : {}),
+    alternates: { canonical: category ? `/mody?kategoria=${params.kategoria}` : "/mody" },
+    robots: { index: !filtered, follow: true },
   };
 }
 

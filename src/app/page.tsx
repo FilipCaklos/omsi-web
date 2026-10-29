@@ -9,7 +9,9 @@ import { EmptyState, SectionHeading } from "@/components/catalog/section-heading
 import { UpcomingCard } from "@/components/catalog/upcoming-card";
 import type { AppLocale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
+import { JsonLd } from "@/components/seo/json-ld";
 import { getDictionary } from "@/i18n/server";
+import { env } from "@/lib/env";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
   getFeaturedMods,
@@ -103,6 +105,21 @@ export default async function HomePage() {
       <CategoryStrip />
 
       <main id="obsah" className="mx-auto max-w-[1320px] space-y-10 px-4 pt-6">
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: t.meta.siteName,
+            description: t.meta.description,
+            url: `${env().APP_URL}/`,
+            inLanguage: ["sk", "cs"],
+            potentialAction: {
+              "@type": "SearchAction",
+              target: { "@type": "EntryPoint", urlTemplate: `${env().APP_URL}/mody?q={search_term_string}` },
+              "query-input": "required name=search_term_string",
+            },
+          }}
+        />
         {featured.length > 0 && (
           <section aria-labelledby="featured">
             <SectionHeading id="featured" title={t.home.featured} Icon={Sparkles} />

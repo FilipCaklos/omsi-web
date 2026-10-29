@@ -25,7 +25,13 @@ async function load(username: string) {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { username } = await params;
   const author = await load(username);
-  return { title: author ? `${author.name} (@${author.username})` : "404" };
+  if (!author || author.bannedAt) return { title: "404", robots: { index: false } };
+  return {
+    title: `${author.name} (@${author.username})`,
+    description: author.bio?.slice(0, 160) || `${author.name} – OMSI 2 modifikácie na OMSI Depo`,
+    alternates: { canonical: `/autor/${author.username}` },
+    openGraph: { type: "profile", title: author.name, url: `/autor/${author.username}` },
+  };
 }
 
 export default async function AuthorPage({ params }: Params) {
