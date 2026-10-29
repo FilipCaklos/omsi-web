@@ -16,7 +16,7 @@ export function ProfileForm({
   initial,
 }: {
   t: Dictionary;
-  initial: { name: string; bio: string; locale: "sk" | "cs"; emailNotify: boolean };
+  initial: { name: string; bio: string; locale: "sk" | "cs"; emailNotify: boolean; websiteUrl: string; youtubeUrl: string; discordUrl: string; donateUrl: string };
 }) {
   const [state, action] = useActionState(updateProfileAction, INITIAL_FORM_STATE);
   return (
@@ -40,6 +40,14 @@ export function ProfileForm({
         />
         <p className="text-xs text-muted">{fieldError(t, state, "bio") ?? t.account.bioHint}</p>
       </div>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium">{t.account.links}</legend>
+        <p className="text-xs text-muted">{t.account.linksHint}</p>
+        <TextField name="youtubeUrl" label="YouTube" defaultValue={initial.youtubeUrl} required={false} maxLength={200} error={fieldError(t, state, "youtubeUrl")} />
+        <TextField name="discordUrl" label={t.account.discordLink} defaultValue={initial.discordUrl} required={false} maxLength={200} error={fieldError(t, state, "discordUrl")} />
+        <TextField name="websiteUrl" label={t.account.website} defaultValue={initial.websiteUrl} required={false} maxLength={200} error={fieldError(t, state, "websiteUrl")} />
+        <TextField name="donateUrl" label={t.account.donate} hint={t.account.donateHint} defaultValue={initial.donateUrl} required={false} maxLength={200} error={fieldError(t, state, "donateUrl")} />
+      </fieldset>
       <div className="space-y-1">
         <label htmlFor="field-locale" className="block text-sm font-medium">
           {t.account.locale}

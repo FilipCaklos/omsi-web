@@ -57,7 +57,7 @@ export default async function AccountPage() {
   const [profile, sessions, accounts] = await Promise.all([
     db().user.findUniqueOrThrow({
       where: { id: user.id },
-      select: { bio: true, emailNotify: true, createdAt: true },
+      select: { bio: true, emailNotify: true, createdAt: true, websiteUrl: true, youtubeUrl: true, discordUrl: true, donateUrl: true },
     }),
     db().session.findMany({
       where: { userId: user.id, expiresAt: { gt: new Date() } },
@@ -127,6 +127,10 @@ export default async function AccountPage() {
                 bio: profile.bio ?? "",
                 locale: user.locale,
                 emailNotify: profile.emailNotify,
+                websiteUrl: profile.websiteUrl ?? "",
+                youtubeUrl: profile.youtubeUrl ?? "",
+                discordUrl: profile.discordUrl ?? "",
+                donateUrl: profile.donateUrl ?? "",
               }}
             />
           </Panel>

@@ -222,6 +222,8 @@ enum NotificationType {
   REPORT_NEW
   /// VirusTotal našiel v súbore detekcie – pre moderátorov
   FILE_FLAGGED
+  /// Sledovaný autor vydal alebo ohlásil nový mod
+  AUTHOR_NEW_MOD
   SYSTEM
 }
 
@@ -261,6 +263,12 @@ model User {
   bannedUntil DateTime?
   lastLoginAt DateTime?
   emailNotify Boolean   @default(true)
+  /// Odkazy v profile autora (iba https)
+  websiteUrl  String?
+  youtubeUrl  String?
+  discordUrl  String?
+  /// Podpora autora (Ko-fi, PayPal, Patreon…)
+  donateUrl   String?
 
   sessions          Session[]
   accounts          Account[]
@@ -284,6 +292,8 @@ model User {
   auditLogs         AuditLog[]
   downloadEvents    DownloadEvent[]
   settingsChanged   SystemSetting[]
+  followingAuthors  AuthorFollow[]     @relation("AuthorFollower")
+  authorFollowers   AuthorFollow[]     @relation("FollowedAuthor")
 
   @@index([role])
   @@index([createdAt])
@@ -355,6 +365,18 @@ model Category {
   mods          Mod[]
 
   @@index([sortOrder])
+}
+
+/// Sledovanie autora – upozornenie, keď vydá alebo ohlási nový mod
+model AuthorFollow {
+  followerId String
+  follower   User     @relation("AuthorFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation("FollowedAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([followerId, authorId])
+  @@index([authorId])
 }
 
 /// Vlastné pole kategórie – spravuje administrátor v /admin/kategorie, hodnoty sú v Mod.attributes

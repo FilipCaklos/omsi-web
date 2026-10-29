@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, Plus, Star } from "lucide-react";
+import { BarChart3, Download, Plus, Star } from "lucide-react";
 import { startNewVersionAction } from "@/app/actions/wizard";
 import { EmptyState } from "@/components/catalog/section-heading";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -50,9 +50,14 @@ export default async function MyModsPage() {
       <main id="obsah" className="mx-auto max-w-[1000px] space-y-5 px-4 py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t.studio.myMods}</h1>
-          <Link href="/nahrat" className="inline-flex h-9 items-center gap-1.5 rounded-[5px] bg-amber px-3 text-sm font-semibold text-amber-ink hover:bg-amber-hover">
-            <Plus size={15} aria-hidden /> {t.studio.newMod}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/ucet/statistiky" className="inline-flex h-9 items-center gap-1.5 rounded-[5px] border border-line px-3 text-sm hover:bg-raised">
+              <BarChart3 size={15} aria-hidden /> {t.stats.title}
+            </Link>
+            <Link href="/nahrat" className="inline-flex h-9 items-center gap-1.5 rounded-[5px] bg-amber px-3 text-sm font-semibold text-amber-ink hover:bg-amber-hover">
+              <Plus size={15} aria-hidden /> {t.studio.newMod}
+            </Link>
+          </div>
         </div>
         {mods.length === 0 ? (
           <EmptyState>{t.studio.empty}</EmptyState>

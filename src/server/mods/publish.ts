@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { can, type AppRole } from "@/lib/rbac";
 import { audit } from "@/server/audit";
-import { announceMod } from "@/server/integrations/discord";
+import { onModAnnounced } from "./announce";
 import { notifyFollowers } from "@/server/notifications";
 import { missingRequired, readAttributes } from "@/lib/category-fields";
 import { getCategoryFields } from "./category-fields";
@@ -97,7 +97,7 @@ export async function publishVersion(versionId: string, actorId: string): Promis
     data: { modTitle: version.mod.title, version: version.version },
     exceptUserId: version.mod.authorId,
   });
-  await announceMod(version.modId, firstRelease ? "RELEASED" : "NEW_VERSION");
+  await onModAnnounced(version.modId, firstRelease ? "RELEASED" : "NEW_VERSION");
 }
 
 /** Odoslanie z Upload Wizardu. Vráti, či sa zverejnilo hneď, alebo čaká na moderátora. */

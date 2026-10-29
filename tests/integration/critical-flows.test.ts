@@ -353,3 +353,36 @@ describe("VirusTotal", () => {
     expect(calls).toBe(1);
   });
 });
+
+describe("autor: sledovanie a štatistiky", () => {
+  it("sledujúci autora dostane upozornenie pri vydaní nového modu (nie pri novej verzii)", async () => {
+    const { publishVersion } = await import("@/server/mods/publish");
+    const fan = await app.db().user.create({ data: { name: "Fanúšik", email: "fan@test.sk", username: "fan.test", emailVerified: true } });
+    await app.db().authorFollow.create({ data: { followerId: fan.id, authorId } });
+    const created = await publishedModWithFile("autor-novinka", await zip([["Maps/n/global.cfg", "x"]]), "PENDING_REVIEW");
+    await publishVersion(created.version.id, moderator.id);
+    const notes = await app.db().notification.findMany({ where: { userId: fan.id }, select: { type: true, data: true } });
+    expect(notes).toEqual([{ type: "AUTHOR_NEW_MOD", data: { modTitle: "autor-novinka", author: "Autor" } }]);
+
+    const second = await app.db().modVersion.create({ data: { modId: created.mod.id, version: "1.1.0", status: "PENDING_REVIEW" } });
+    await publishVersion(second.id, moderator.id);
+    expect(await app.db().notification.count({ where: { userId: fan.id } })).toBe(1);
+  });
+
+  it("stiahnutia po dňoch doplnia prázdne dni nulou", async () => {
+    const { dailyDownloads } = await import("@/server/mods/stats");
+    const created = await publishedModWithFile("statistiky-mod", await zip([["Maps/s/global.cfg", "x"]]));
+    const now = new Date("2026-10-29T12:00:00Z");
+    const event = (daysAgo: number, n: number) =>
+      app.db().downloadEvent.createMany({
+        data: Array.from({ length: n }, (_, i) => ({ fileId: created.file.id, modId: created.mod.id, ipHash: `${daysAgo}-${i}`.padEnd(64, "0"), createdAt: new Date(now.getTime() - daysAgo * 86_400_000) })),
+      });
+    await event(0, 3);
+    await event(2, 1);
+    const points = await dailyDownloads([created.mod.id], 7, now);
+    expect(points).toHaveLength(7);
+    expect(points.at(-1)).toEqual({ day: "2026-10-29", count: 3 });
+    expect(points.at(-3)).toEqual({ day: "2026-10-27", count: 1 });
+    expect(points.filter((p) => p.count === 0)).toHaveLength(5);
+  });
+});

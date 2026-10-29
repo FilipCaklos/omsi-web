@@ -34,6 +34,10 @@ export async function updateProfileAction(state: FormState, formData: FormData):
     bio: field(formData, "bio") ?? "",
     locale: field(formData, "locale"),
     emailNotify: field(formData, "emailNotify"),
+    websiteUrl: field(formData, "websiteUrl") ?? "",
+    youtubeUrl: field(formData, "youtubeUrl") ?? "",
+    discordUrl: field(formData, "discordUrl") ?? "",
+    donateUrl: field(formData, "donateUrl") ?? "",
   });
   if (!parsed.success) return { status: "error", fieldErrors: zodFieldErrors(parsed.error), attempt: attempt + 1 };
 
@@ -54,6 +58,10 @@ export async function updateProfileAction(state: FormState, formData: FormData):
       bio: parsed.data.bio,
       locale: parsed.data.locale,
       emailNotify: parsed.data.emailNotify,
+      websiteUrl: parsed.data.websiteUrl,
+      youtubeUrl: parsed.data.youtubeUrl,
+      discordUrl: parsed.data.discordUrl,
+      donateUrl: parsed.data.donateUrl,
     },
   });
   (await cookies()).set(LOCALE_COOKIE, parsed.data.locale, {

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { Bell, BellOff, LoaderCircle } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { toggleFollowAction, type FollowState } from "@/app/actions/follow";
+import { toggleAuthorFollowAction, toggleFollowAction, type FollowState } from "@/app/actions/follow";
 
 function Button({ following, labels }: { following: boolean; labels: { follow: string; unfollow: string } }) {
   const { pending } = useFormStatus();
@@ -23,21 +23,23 @@ function Button({ following, labels }: { following: boolean; labels: { follow: s
   );
 }
 
-/** Sledovanie projektu – pri vydaní, novej verzii a devlogu príde upozornenie. */
+/** Sledovanie projektu – pri vydaní, novej verzii a devlogu príde upozornenie. Pri authorId sleduje autora. */
 export function FollowButton({
   modId,
+  authorId,
   initial,
   signedIn,
   signInHref,
   labels,
 }: {
-  modId: string;
+  modId?: string;
+  authorId?: string;
   initial: { following: boolean; count: number };
   signedIn: boolean;
   signInHref: string;
   labels: { follow: string; unfollow: string; following: string; signIn: string; count: string };
 }) {
-  const [state, action] = useActionState<FollowState, FormData>(toggleFollowAction, initial);
+  const [state, action] = useActionState<FollowState, FormData>(authorId ? toggleAuthorFollowAction : toggleFollowAction, initial);
   if (!signedIn) {
     return (
       <Link href={signInHref} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[5px] bg-amber px-4 text-sm font-semibold text-amber-ink hover:bg-amber-hover">
@@ -47,7 +49,8 @@ export function FollowButton({
   }
   return (
     <form action={action} className="space-y-1.5">
-      <input type="hidden" name="modId" value={modId} />
+      {modId && <input type="hidden" name="modId" value={modId} />}
+      {authorId && <input type="hidden" name="authorId" value={authorId} />}
       <Button following={state.following} labels={labels} />
       <p className="text-center font-mono text-[11px] text-muted" aria-live="polite">
         {state.following && `${labels.following} · `}

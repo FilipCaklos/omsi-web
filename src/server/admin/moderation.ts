@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { hasRole, type AppRole } from "@/lib/rbac";
 import { audit } from "@/server/audit";
 import { publishVersion } from "@/server/mods/publish";
-import { announceMod } from "@/server/integrations/discord";
+import { onModAnnounced } from "@/server/mods/announce";
 import { notify } from "@/server/notifications";
 
 export type Moderator = { id: string; role: Exclude<AppRole, "GUEST"> };
@@ -116,7 +116,7 @@ export async function approve(actor: Moderator, modId: string, comment: string):
     }
   } else if (mod.status === "PENDING_REVIEW" && mod.plannedRelease) {
     await db().mod.update({ where: { id: mod.id }, data: { status: "PLANNED" } });
-    await announceMod(mod.id, "PLANNED");
+    await onModAnnounced(mod.id, "PLANNED");
   } else {
     return { ok: false, error: "NOTHING_PENDING" };
   }

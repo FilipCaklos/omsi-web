@@ -101,8 +101,20 @@ export const changePasswordSchema = z
     message: "PASSWORD_SAME",
   });
 
+/** Odkaz v profile: prázdny = žiadny, inak iba https (žiadne javascript: ani http). */
+const profileLink = z
+  .string()
+  .trim()
+  .max(200, "URL_INVALID")
+  .refine((value) => value === "" || /^https:\/\/[^\s/$.?#][^\s]*$/i.test(value), "URL_INVALID")
+  .transform((value) => (value === "" ? null : value));
+
 export const profileSchema = z.object({
   name: displayNameSchema,
+  websiteUrl: profileLink,
+  youtubeUrl: profileLink,
+  discordUrl: profileLink,
+  donateUrl: profileLink,
   bio: z
     .string()
     .trim()
