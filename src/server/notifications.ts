@@ -29,6 +29,29 @@ export async function notify(input: NotifyInput | NotifyInput[]): Promise<void> 
   });
 }
 
+/**
+ * Nová verzia: upozorní aj tých, čo si mod stiahli (a nesledujú ho – tí dostanú upozornenie ako sledujúci),
+ * ak majú upozornenia na aktualizácie zapnuté a ešte nemajú túto verziu.
+ */
+export async function notifyDownloaders(params: { modId: string; versionId: string; link: string; data: Prisma.InputJsonObject; exceptUserId?: string }): Promise<number> {
+  const [downloaders, followers] = await Promise.all([
+    db().userDownload.findMany({
+      where: {
+        modId: params.modId,
+        notifyUpdates: true,
+        OR: [{ versionId: null }, { versionId: { not: params.versionId } }],
+        ...(params.exceptUserId ? { userId: { not: params.exceptUserId } } : {}),
+      },
+      select: { userId: true },
+    }),
+    db().follow.findMany({ where: { modId: params.modId }, select: { userId: true } }),
+  ]);
+  const following = new Set(followers.map((f) => f.userId));
+  const targets = downloaders.filter((d) => !following.has(d.userId));
+  await notify(targets.map((d) => ({ userId: d.userId, type: "NEW_VERSION" as const, modId: params.modId, link: params.link, data: params.data })));
+  return targets.length;
+}
+
 /** Upozorní všetkých sledujúcich projektu (okrem autora akcie). */
 export async function notifyFollowers(params: {
   modId: string;

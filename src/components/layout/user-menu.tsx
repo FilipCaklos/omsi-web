@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown, LogOut, Package, ShieldHalf, UserRound } from "lucide-react";
+import { ChevronDown, Download, LogOut, Package, ShieldHalf, UserRound } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { can } from "@/lib/rbac";
@@ -27,6 +27,10 @@ export function UserMenu({ user, t }: { user: CurrentUser; t: Dictionary }) {
         <Link href="/ucet" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-raised">
           <UserRound size={15} strokeWidth={1.75} aria-hidden />
           {t.userMenu.account}
+        </Link>
+        <Link href="/ucet/stiahnute" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-raised">
+          <Download size={15} strokeWidth={1.75} aria-hidden />
+          {t.userMenu.downloads}
         </Link>
         <Link href="/ucet/mody" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-raised">
           <Package size={15} strokeWidth={1.75} aria-hidden />

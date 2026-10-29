@@ -293,6 +293,7 @@ model User {
   downloadEvents    DownloadEvent[]
   settingsChanged   SystemSetting[]
   followingAuthors  AuthorFollow[]     @relation("AuthorFollower")
+  downloadHistory   UserDownload[]
   authorFollowers   AuthorFollow[]     @relation("FollowedAuthor")
 
   @@index([role])
@@ -348,23 +349,41 @@ model Verification {
 // ───────────────────────────── Číselníky ─────────────────────────────
 
 model Category {
-  id            String        @id @default(cuid())
-  slug          String        @unique
+  id            String          @id @default(cuid())
+  slug          String          @unique
   nameSk        String
   nameCs        String
-  descriptionSk String        @default("")
-  descriptionCs String        @default("")
+  descriptionSk String          @default("")
+  descriptionCs String          @default("")
   /// Názov ikony z lucide-react (allowlist v src/lib/category-icons.ts)
   icon          String
-  sortOrder     Int           @default(0)
-  isActive      Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  sortOrder     Int             @default(0)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   subcategories Subcategory[]
   fields        CategoryField[]
   mods          Mod[]
 
   @@index([sortOrder])
+}
+
+/// História stiahnutí prihláseného používateľa („Moje stiahnuté“) – upozornenie na novú verziu
+model UserDownload {
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modId           String
+  mod             Mod         @relation(fields: [modId], references: [id], onDelete: Cascade)
+  /// Verzia, ktorej súbor si stiahol naposledy
+  versionId       String?
+  version         ModVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  notifyUpdates   Boolean     @default(true)
+  firstDownloadAt DateTime    @default(now())
+  lastDownloadAt  DateTime    @default(now())
+
+  @@id([userId, modId])
+  @@index([modId])
+  @@index([userId, lastDownloadAt(sort: Desc)])
 }
 
 /// Sledovanie autora – upozornenie, keď vydá alebo ohlási nový mod
@@ -470,9 +489,9 @@ model Mod {
   /// Hodnoty vlastných polí kategórie: { "<key>": string | number | boolean | string[] }
   attributes      Json         @default("{}")
 
-  requires4GbPatch Boolean       @default(false)
+  requires4GbPatch Boolean         @default(false)
   openOmsi         OpenOmsiSupport @default(UNTESTED)
-  licenseTerms     LicenseTerm[] @default([])
+  licenseTerms     LicenseTerm[]   @default([])
   licenseNote      String?
   youtubeVideoId   String?
 
@@ -515,6 +534,7 @@ model Mod {
   follows        Follow[]
   notifications  Notification[]
   downloadEvents DownloadEvent[]
+  userDownloads  UserDownload[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([status, lastUpdatedAt(sort: Desc)])
@@ -578,6 +598,8 @@ model ModVersion {
   bugReports BugReport[]
   reviews    Review[]
   moderation ModerationAction[]
+
+  userDownloads UserDownload[]
 
   @@unique([modId, version])
   @@index([status, scheduledAt])
@@ -669,27 +691,27 @@ model ModDependency {
 }
 
 model MediaImage {
-  id         String    @id @default(cuid())
-  kind       ImageKind
-  ownerId    String
-  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  modId      String?
-  mod        Mod?      @relation(fields: [modId], references: [id], onDelete: Cascade)
-  devlogId   String?
-  devlog     Devlog?   @relation(fields: [devlogId], references: [id], onDelete: Cascade)
+  id            String        @id @default(cuid())
+  kind          ImageKind
+  ownerId       String
+  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  modId         String?
+  mod           Mod?          @relation(fields: [modId], references: [id], onDelete: Cascade)
+  devlogId      String?
+  devlog        Devlog?       @relation(fields: [devlogId], references: [id], onDelete: Cascade)
   /// Kľúč 16:9 WebP náhľadu v úložisku
-  storageKey String    @unique
+  storageKey    String        @unique
   /// Kľúč plnej (re-enkódovanej) WebP verzie
-  fullKey    String    @unique
+  fullKey       String        @unique
   /// Úložisko, do ktorého sa obrázok zapísal (pri prechode LOCAL → S3 sa staré čítajú z disku)
   storageDriver StorageDriver @default(LOCAL_DISK)
-  width      Int
-  height     Int
-  sizeBytes  Int
-  caption    String?
-  sortOrder  Int       @default(0)
-  isPrimary  Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  width         Int
+  height        Int
+  sizeBytes     Int
+  caption       String?
+  sortOrder     Int           @default(0)
+  isPrimary     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
 
   @@index([modId, sortOrder])
   @@index([devlogId])

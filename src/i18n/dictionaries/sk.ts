@@ -278,6 +278,7 @@ export const sk = {
   userMenu: {
     account: "Môj účet",
     myMods: "Moje modifikácie",
+    downloads: "Moje stiahnuté",
     admin: "Administrácia",
     signOut: "Odhlásiť sa",
     label: "Používateľské menu",
@@ -479,6 +480,18 @@ export const sk = {
     signIn: "Prihlás sa a sleduj autora",
     support: "Podporiť autora",
     downloads: "stiahnutí spolu",
+  },
+  downloads: {
+    title: "Moje stiahnuté",
+    intro: "Mody, ktoré si si stiahol prihlásený. Keď vyjde nová verzia, dostaneš upozornenie – pri každom ho môžeš vypnúť zvončekom.",
+    empty: "Zatiaľ si si prihlásený nič nestiahol.",
+    downloaded: "Stiahnuté",
+    update: "Aktualizovať na v{version}",
+    updatesAvailable: "Nová verzia je dostupná pri {n} stiahnutých modoch.",
+    notifyOn: "Upozornenia na nové verzie zapnuté",
+    notifyOff: "Upozornenia na nové verzie vypnuté",
+    remove: "Odstrániť z histórie",
+    clearAll: "Vymazať históriu",
   },
   stats: {
     title: "Štatistiky",

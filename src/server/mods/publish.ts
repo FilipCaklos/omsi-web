@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { can, type AppRole } from "@/lib/rbac";
 import { audit } from "@/server/audit";
 import { onModAnnounced } from "./announce";
-import { notifyFollowers } from "@/server/notifications";
+import { notifyDownloaders, notifyFollowers } from "@/server/notifications";
 import { missingRequired, readAttributes } from "@/lib/category-fields";
 import { getCategoryFields } from "./category-fields";
 import { refreshSearchExtra } from "./helpers";
@@ -97,6 +97,15 @@ export async function publishVersion(versionId: string, actorId: string): Promis
     data: { modTitle: version.mod.title, version: version.version },
     exceptUserId: version.mod.authorId,
   });
+  if (!firstRelease) {
+    await notifyDownloaders({
+      modId: version.modId,
+      versionId,
+      link: `/mod/${version.mod.slug}#subory`,
+      data: { modTitle: version.mod.title, version: version.version },
+      exceptUserId: version.mod.authorId,
+    });
+  }
   await onModAnnounced(version.modId, firstRelease ? "RELEASED" : "NEW_VERSION");
 }
 

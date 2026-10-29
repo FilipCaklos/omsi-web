@@ -386,3 +386,23 @@ describe("autor: sledovanie a štatistiky", () => {
     expect(points.filter((p) => p.count === 0)).toHaveLength(5);
   });
 });
+
+describe("moje stiahnuté", () => {
+  it("zapamätá stiahnutú verziu a pri novej verzii upozorní (sledujúci nedostanú dvojité upozornenie)", async () => {
+    const { recordDownload } = await import("@/server/downloads/counter");
+    const { publishVersion } = await import("@/server/mods/publish");
+    const created = await publishedModWithFile("stiahnuty-mod", await zip([["Maps/d/global.cfg", "x"]]));
+    const [player, fan] = await Promise.all([
+      app.db().user.create({ data: { name: "Hráč", email: "hrac@test.sk", username: "hrac.test", emailVerified: true } }),
+      app.db().user.create({ data: { name: "Fanúšik 2", email: "fan2@test.sk", username: "fan2.test", emailVerified: true } }),
+    ]);
+    for (const u of [player, fan]) await recordDownload({ fileId: created.file.id, modId: created.mod.id, userId: u.id, ipHash: "a".repeat(64) });
+    await app.db().follow.create({ data: { userId: fan.id, modId: created.mod.id } });
+    expect(await app.db().userDownload.findUniqueOrThrow({ where: { userId_modId: { userId: player.id, modId: created.mod.id } } })).toMatchObject({ versionId: created.version.id, notifyUpdates: true });
+
+    const next = await app.db().modVersion.create({ data: { modId: created.mod.id, version: "2.0.0", status: "PENDING_REVIEW" } });
+    await publishVersion(next.id, moderator.id);
+    expect(await app.db().notification.findMany({ where: { userId: player.id }, select: { type: true } })).toEqual([{ type: "NEW_VERSION" }]);
+    expect(await app.db().notification.count({ where: { userId: fan.id, type: "NEW_VERSION" } })).toBe(1);
+  });
+});

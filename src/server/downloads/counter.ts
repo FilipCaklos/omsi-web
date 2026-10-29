@@ -14,6 +14,17 @@ const DAY_SECONDS = 24 * 60 * 60;
 export async function recordDownload(params: { fileId: string; modId: string; userId: string | null; ipHash: string }): Promise<void> {
   const identity = params.userId ? `u:${params.userId}` : `ip:${params.ipHash}`;
 
+  // „Moje stiahnuté“: prihlásenému zapamätáme verziu, ktorú si stiahol (aj pri opakovanom stiahnutí)
+  if (params.userId) {
+    const file = await db().modFile.findUnique({ where: { id: params.fileId }, select: { versionId: true } });
+    const now = new Date();
+    await db().userDownload.upsert({
+      where: { userId_modId: { userId: params.userId, modId: params.modId } },
+      create: { userId: params.userId, modId: params.modId, versionId: file?.versionId ?? null, firstDownloadAt: now, lastDownloadAt: now },
+      update: { versionId: file?.versionId ?? null, lastDownloadAt: now },
+    });
+  }
+
   let fileIsNew: boolean;
   let modIsNew: boolean;
   try {

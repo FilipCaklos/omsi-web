@@ -280,6 +280,7 @@ export const cs: Dictionary = {
   userMenu: {
     account: "Můj účet",
     myMods: "Moje modifikace",
+    downloads: "Moje stažené",
     admin: "Administrace",
     signOut: "Odhlásit se",
     label: "Uživatelské menu",
@@ -481,6 +482,18 @@ export const cs: Dictionary = {
     signIn: "Přihlas se a sleduj autora",
     support: "Podpořit autora",
     downloads: "stažení celkem",
+  },
+  downloads: {
+    title: "Moje stažené",
+    intro: "Mody, které sis stáhl přihlášený. Když vyjde nová verze, dostaneš upozornění – u každého ho můžeš vypnout zvonečkem.",
+    empty: "Zatím sis přihlášený nic nestáhl.",
+    downloaded: "Staženo",
+    update: "Aktualizovat na v{version}",
+    updatesAvailable: "Nová verze je dostupná u {n} stažených modů.",
+    notifyOn: "Upozornění na nové verze zapnuta",
+    notifyOff: "Upozornění na nové verze vypnuta",
+    remove: "Odstranit z historie",
+    clearAll: "Smazat historii",
   },
   stats: {
     title: "Statistiky",
