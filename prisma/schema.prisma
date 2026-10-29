@@ -1,0 +1,879 @@
+// OMSI Depo — databázová schéma
+// PostgreSQL 16 + rozšírenia unaccent a pg_trgm (zapínané v migrácii 0001_init).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enumerácie ─────────────────────────────
+
+/// GUEST nie je uložený v DB – je to neprihlásený návštevník.
+enum Role {
+  USER
+  VERIFIED_CREATOR
+  MODERATOR
+  ADMIN
+}
+
+enum Locale {
+  sk
+  cs
+}
+
+enum ModStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  PLANNED
+  SCHEDULED
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
+enum VersionStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  SCHEDULED
+  PUBLISHED
+  REJECTED
+}
+
+enum FileKind {
+  MAIN
+  PATCH
+  OPTIONAL
+  OLD_VERSION
+}
+
+enum StorageDriver {
+  LOCAL_DISK
+  S3_COMPATIBLE
+}
+
+enum ArchiveFormat {
+  ZIP
+  SEVEN_Z
+  RAR
+  NONE
+}
+
+enum ScanStatus {
+  PENDING
+  CLEAN
+  REQUIRES_MOD_INSPECTION
+  REJECTED
+}
+
+enum DependencyKind {
+  STEAM_DLC
+  INTERNAL_MOD
+  EXTERNAL_LINK
+}
+
+enum CreditRole {
+  MODEL
+  TEXTURES
+  SCRIPTS
+  SOUNDS
+  MAP
+  REPAINT
+  HOF
+  ANNOUNCEMENTS
+  TESTING
+  OTHER
+}
+
+enum LicenseTerm {
+  NO_REUPLOAD
+  MODIFY_WITH_PERMISSION
+  REPAINTS_ALLOWED
+  NO_COMMERCIAL_USE
+  CREDIT_REQUIRED
+  FREE_TO_MODIFY
+}
+
+enum ReleaseMode {
+  EXACT_DATE
+  WINDOW
+  TBA
+}
+
+enum ReleaseWindowPart {
+  Q1
+  Q2
+  Q3
+  Q4
+  SPRING
+  SUMMER
+  AUTUMN
+  WINTER
+  H1
+  H2
+  YEAR
+}
+
+enum ImageKind {
+  SCREENSHOT
+  DEVLOG
+  AVATAR
+}
+
+enum OperatorCountry {
+  SK
+  CZ
+  OTHER
+}
+
+enum BugStatus {
+  OPEN
+  CONFIRMED
+  IN_PROGRESS
+  FIXED
+  WONT_FIX
+  DUPLICATE
+  INVALID
+}
+
+enum ReportTarget {
+  MOD
+  FILE
+  REVIEW
+  COMMENT
+  USER
+}
+
+enum ReportReason {
+  STOLEN_CONTENT
+  MISSING_CREDITS
+  UNAUTHORIZED_REUPLOAD
+  BROKEN_ARCHIVE
+  SUSPICIOUS_FILE
+  SPAM
+  OFFENSIVE
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum ModerationDecision {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+  FILE_APPROVED
+  FILE_REJECTED
+}
+
+enum NotificationType {
+  DEVLOG_POSTED
+  MOD_RELEASED
+  NEW_VERSION
+  MOD_APPROVED
+  MOD_CHANGES_REQUESTED
+  MOD_REJECTED
+  BUG_REPORT_NEW
+  BUG_REPORT_STATUS
+  REVIEW_NEW
+  COMMENT_REPLY
+  REPORT_RESOLVED
+  SYSTEM
+}
+
+enum UploadStatus {
+  UPLOADING
+  ASSEMBLING
+  SCANNING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum UploadPurpose {
+  MOD_FILE
+  SCREENSHOT
+  DEVLOG_IMAGE
+}
+
+// ───────────────────────────── Používatelia & autentifikácia ─────────────────────────────
+// Tabuľky User/Session/Account/Verification zodpovedajú požiadavkám Better Auth.
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  username    String    @unique
+  role        Role      @default(USER)
+  locale      Locale    @default(sk)
+  bio         String?
+  bannedAt    DateTime?
+  banReason   String?
+  bannedUntil DateTime?
+  lastLoginAt DateTime?
+  emailNotify Boolean   @default(true)
+
+  sessions          Session[]
+  accounts          Account[]
+  mods              Mod[]              @relation("ModAuthor")
+  credits           ModCredit[]
+  uploadedFiles     ModFile[]          @relation("FileUploader")
+  approvedFiles     ModFile[]          @relation("FileApprover")
+  images            MediaImage[]
+  uploadSessions    UploadSession[]
+  reviews           Review[]
+  comments          Comment[]
+  bugReports        BugReport[]
+  bugReportComments BugReportComment[]
+  reportsFiled      Report[]           @relation("ReportReporter")
+  reportsResolved   Report[]           @relation("ReportResolver")
+  reportsAgainst    Report[]           @relation("ReportTargetUser")
+  moderationActions ModerationAction[]
+  follows           Follow[]
+  notifications     Notification[]
+  devlogs           Devlog[]
+  auditLogs         AuditLog[]
+  downloadEvents    DownloadEvent[]
+  settingsChanged   SystemSetting[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+// ───────────────────────────── Číselníky ─────────────────────────────
+
+model Category {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  nameSk        String
+  nameCs        String
+  descriptionSk String        @default("")
+  descriptionCs String        @default("")
+  /// Názov ikony z lucide-react (allowlist v src/lib/category-icons.ts)
+  icon          String
+  sortOrder     Int           @default(0)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  subcategories Subcategory[]
+  mods          Mod[]
+
+  @@index([sortOrder])
+}
+
+model Subcategory {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  slug       String
+  nameSk     String
+  nameCs     String
+  sortOrder  Int      @default(0)
+  mods       Mod[]
+
+  @@unique([categoryId, slug])
+}
+
+model VehicleBrand {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  sortOrder Int        @default(0)
+  mods      ModBrand[]
+}
+
+model Operator {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  name      String
+  city      String?
+  country   OperatorCountry
+  sortOrder Int             @default(0)
+  mods      ModOperator[]
+}
+
+model SteamDlc {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  name         String
+  steamAppId   Int?            @unique
+  storeUrl     String?
+  dependencies ModDependency[]
+}
+
+// ───────────────────────────── Modifikácie ─────────────────────────────
+
+model Mod {
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  title           String
+  summary         String
+  description     String       @default("")
+  /// Serverovo sanitizované HTML z Markdownu (rehype-sanitize)
+  descriptionHtml String       @default("")
+  status          ModStatus    @default(DRAFT)
+  authorId        String
+  author          User         @relation("ModAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  categoryId      String
+  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subcategoryId   String?
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  vehicleModel    String?
+  tags            String[]     @default([])
+
+  requires4GbPatch Boolean       @default(false)
+  licenseTerms     LicenseTerm[] @default([])
+  licenseNote      String?
+  youtubeVideoId   String?
+
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
+
+  downloadCount Int   @default(0)
+  ratingAvg     Float @default(0)
+  ratingCount   Int   @default(0)
+  followerCount Int   @default(0)
+
+  /// Doplnkové texty pre vyhľadávanie (značky, dopravcovia, kategória) – plní aplikácia
+  searchExtra String @default("")
+  /// Normalizovaný text bez diakritiky – plní DB trigger "mod_search_text_trg"
+  searchText  String @default("")
+
+  currentVersionId String?     @unique
+  currentVersion   ModVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+
+  publishedAt   DateTime?
+  lastUpdatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  brands         ModBrand[]
+  operators      ModOperator[]
+  versions       ModVersion[]       @relation("ModVersions")
+  files          ModFile[]
+  images         MediaImage[]
+  credits        ModCredit[]
+  dependencies   ModDependency[]    @relation("DependencyOwner")
+  dependents     ModDependency[]    @relation("DependencyTarget")
+  plannedRelease PlannedRelease?
+  devlogs        Devlog[]
+  reviews        Review[]
+  comments       Comment[]
+  bugReports     BugReport[]
+  reports        Report[]
+  moderation     ModerationAction[]
+  follows        Follow[]
+  notifications  Notification[]
+  downloadEvents DownloadEvent[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([status, lastUpdatedAt(sort: Desc)])
+  @@index([status, downloadCount(sort: Desc)])
+  @@index([categoryId, status])
+  @@index([authorId])
+  @@index([isFeatured, status])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+model ModBrand {
+  modId   String
+  brandId String
+  mod     Mod          @relation(fields: [modId], references: [id], onDelete: Cascade)
+  brand   VehicleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@id([modId, brandId])
+  @@index([brandId])
+}
+
+model ModOperator {
+  modId      String
+  operatorId String
+  mod        Mod      @relation(fields: [modId], references: [id], onDelete: Cascade)
+  operator   Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@id([modId, operatorId])
+  @@index([operatorId])
+}
+
+model ModCredit {
+  id        String     @id @default(cuid())
+  modId     String
+  mod       Mod        @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// Meno pre spoluautora bez účtu na portáli
+  name      String
+  role      CreditRole
+  sortOrder Int        @default(0)
+
+  @@index([modId])
+}
+
+model ModVersion {
+  id            String        @id @default(cuid())
+  modId         String
+  mod           Mod           @relation("ModVersions", fields: [modId], references: [id], onDelete: Cascade)
+  currentOf     Mod?          @relation("CurrentVersion")
+  version       String
+  changelog     String        @default("")
+  changelogHtml String        @default("")
+  status        VersionStatus @default(DRAFT)
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  files      ModFile[]
+  bugReports BugReport[]
+  reviews    Review[]
+  moderation ModerationAction[]
+
+  @@unique([modId, version])
+  @@index([status, scheduledAt])
+}
+
+model ModFile {
+  id               String        @id @default(cuid())
+  modId            String
+  mod              Mod           @relation(fields: [modId], references: [id], onDelete: Cascade)
+  versionId        String
+  version          ModVersion    @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  kind             FileKind
+  displayName      String
+  description      String        @default("")
+  originalFilename String
+  extension        String
+  mimeType         String
+  sizeBytes        BigInt
+  sha256           String        @db.Char(64)
+  storageDriver    StorageDriver
+  storageKey       String        @unique
+
+  archiveFormat            ArchiveFormat @default(NONE)
+  /// Strom súborov archívu: [{ path, size, dir }]
+  archiveEntries           Json?
+  archiveEntryCount        Int           @default(0)
+  archiveUncompressedBytes BigInt?
+  /// Zistené top-level priečinky OMSI (Maps, Vehicles, Sceneryobjects, …)
+  omsiFolders              String[]      @default([])
+  scanStatus               ScanStatus    @default(PENDING)
+  scanNotes                Json?
+
+  /// Patch nadväzuje na konkrétny hlavný súbor
+  patchForFileId String?
+  patchFor       ModFile?  @relation("PatchFor", fields: [patchForFileId], references: [id], onDelete: SetNull)
+  patches        ModFile[] @relation("PatchFor")
+
+  mirrorUrl   String?
+  mirrorLabel String?
+
+  downloadCount Int       @default(0)
+  sortOrder     Int       @default(0)
+  uploaderId    String
+  uploader      User      @relation("FileUploader", fields: [uploaderId], references: [id], onDelete: Restrict)
+  approvedById  String?
+  approvedBy    User?     @relation("FileApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  uploadSession  UploadSession?
+  reports        Report[]
+  downloadEvents DownloadEvent[]
+
+  @@index([modId, kind])
+  @@index([versionId])
+  @@index([scanStatus])
+  @@index([sha256])
+}
+
+model ModDependency {
+  id            String         @id @default(cuid())
+  modId         String
+  mod           Mod            @relation("DependencyOwner", fields: [modId], references: [id], onDelete: Cascade)
+  kind          DependencyKind
+  required      Boolean        @default(true)
+  steamDlcId    String?
+  steamDlc      SteamDlc?      @relation(fields: [steamDlcId], references: [id], onDelete: Cascade)
+  targetModId   String?
+  targetMod     Mod?           @relation("DependencyTarget", fields: [targetModId], references: [id], onDelete: Cascade)
+  externalUrl   String?
+  externalLabel String?
+  note          String?
+  sortOrder     Int            @default(0)
+
+  @@index([modId])
+  @@index([targetModId])
+}
+
+model MediaImage {
+  id         String    @id @default(cuid())
+  kind       ImageKind
+  ownerId    String
+  owner      User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  modId      String?
+  mod        Mod?      @relation(fields: [modId], references: [id], onDelete: Cascade)
+  devlogId   String?
+  devlog     Devlog?   @relation(fields: [devlogId], references: [id], onDelete: Cascade)
+  /// Kľúč 16:9 WebP náhľadu v úložisku
+  storageKey String    @unique
+  /// Kľúč plnej (re-enkódovanej) WebP verzie
+  fullKey    String    @unique
+  width      Int
+  height     Int
+  sizeBytes  Int
+  caption    String?
+  sortOrder  Int       @default(0)
+  isPrimary  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([modId, sortOrder])
+  @@index([devlogId])
+}
+
+// ───────────────────────────── Pripravované vydania ─────────────────────────────
+
+model PlannedRelease {
+  id             String             @id @default(cuid())
+  modId          String             @unique
+  mod            Mod                @relation(fields: [modId], references: [id], onDelete: Cascade)
+  mode           ReleaseMode
+  /// EXACT_DATE: presný čas vydania (UTC)
+  releaseAt      DateTime?
+  /// WINDOW: rok a časť roka
+  windowYear     Int?
+  windowPart     ReleaseWindowPart?
+  /// TBA: upozornenie pre diskutujúcich, aby sa nepýtali na dátum
+  noEtaQuestions Boolean            @default(false)
+  /// Ak je nahraný finálny súbor, v releaseAt sa mod automaticky odomkne
+  autoPublish    Boolean            @default(false)
+  releasedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  progress       DevProgress[]
+
+  @@index([mode, releaseAt])
+}
+
+model DevProgress {
+  id               String         @id @default(cuid())
+  plannedReleaseId String
+  plannedRelease   PlannedRelease @relation(fields: [plannedReleaseId], references: [id], onDelete: Cascade)
+  label            String
+  percent          Int
+  sortOrder        Int            @default(0)
+  updatedAt        DateTime       @updatedAt
+
+  @@index([plannedReleaseId])
+}
+
+model Devlog {
+  id        String       @id @default(cuid())
+  modId     String
+  mod       Mod          @relation(fields: [modId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  title     String
+  body      String
+  bodyHtml  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  images    MediaImage[]
+  comments  Comment[]
+
+  @@index([modId, createdAt(sort: Desc)])
+}
+
+model Follow {
+  userId      String
+  modId       String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mod         Mod      @relation(fields: [modId], references: [id], onDelete: Cascade)
+  notifyEmail Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@id([userId, modId])
+  @@index([modId])
+}
+
+// ───────────────────────────── Komunita ─────────────────────────────
+
+model Review {
+  id        String      @id @default(cuid())
+  modId     String
+  mod       Mod         @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versionId String?
+  version   ModVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  rating    Int
+  body      String
+  bodyHtml  String
+  hiddenAt  DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  reports   Report[]
+
+  @@unique([modId, userId])
+  @@index([modId, createdAt(sort: Desc)])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  modId     String?
+  mod       Mod?      @relation(fields: [modId], references: [id], onDelete: Cascade)
+  devlogId  String?
+  devlog    Devlog?   @relation(fields: [devlogId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  body      String
+  bodyHtml  String
+  hiddenAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+
+  @@index([modId, createdAt])
+  @@index([devlogId, createdAt])
+}
+
+model BugReport {
+  id              String             @id @default(cuid())
+  modId           String
+  mod             Mod                @relation(fields: [modId], references: [id], onDelete: Cascade)
+  versionId       String?
+  version         ModVersion?        @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  reporterId      String
+  reporter        User               @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  descriptionHtml String
+  /// Výpis z OMSI logfile.txt (zobrazovaný ako čistý text v <pre>)
+  logfile         String?
+  omsiVersion     String?
+  status          BugStatus          @default(OPEN)
+  fixedInVersion  String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  comments        BugReportComment[]
+
+  @@index([modId, status])
+}
+
+model BugReportComment {
+  id          String    @id @default(cuid())
+  bugReportId String
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body        String
+  bodyHtml    String
+  createdAt   DateTime  @default(now())
+
+  @@index([bugReportId, createdAt])
+}
+
+// ───────────────────────────── Moderácia ─────────────────────────────
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  reporter       User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType     ReportTarget
+  modId          String?
+  mod            Mod?         @relation(fields: [modId], references: [id], onDelete: Cascade)
+  fileId         String?
+  file           ModFile?     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  reviewId       String?
+  review         Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  commentId      String?
+  comment        Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  targetUserId   String?
+  targetUser     User?        @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+  reason         ReportReason
+  details        String
+  status         ReportStatus @default(OPEN)
+  resolvedById   String?
+  resolvedBy     User?        @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolutionNote String?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([status, createdAt])
+}
+
+model ModerationAction {
+  id          String             @id @default(cuid())
+  modId       String
+  mod         Mod                @relation(fields: [modId], references: [id], onDelete: Cascade)
+  versionId   String?
+  version     ModVersion?        @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  moderatorId String
+  moderator   User               @relation(fields: [moderatorId], references: [id], onDelete: Restrict)
+  decision    ModerationDecision
+  comment     String             @default("")
+  createdAt   DateTime           @default(now())
+
+  @@index([modId, createdAt(sort: Desc)])
+}
+
+// ───────────────────────────── Notifikácie, upload, štatistiky ─────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  modId     String?
+  mod       Mod?             @relation(fields: [modId], references: [id], onDelete: Cascade)
+  /// Parametre pre lokalizovaný text notifikácie
+  data      Json             @default("{}")
+  link      String?
+  readAt    DateTime?
+  emailedAt DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt(sort: Desc)])
+  @@index([emailedAt])
+}
+
+model UploadSession {
+  id                       String         @id @default(cuid())
+  userId                   String
+  user                     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose                  UploadPurpose
+  filename                 String
+  extension                String
+  sizeBytes                BigInt
+  chunkSize                Int
+  totalChunks              Int
+  /// Počet prijatých chunkov – upload prebieha sekvenčne a dá sa naviazať
+  receivedChunks           Int            @default(0)
+  receivedBytes            BigInt         @default(0)
+  status                   UploadStatus   @default(UPLOADING)
+  /// SHA-256 sa počíta po prijatí posledného chunku (streamovaním celého súboru)
+  sha256                   String?        @db.Char(64)
+  /// Výsledok kontroly po dokončení uploadu – pri pripojení k modu sa prenesie do ModFile
+  storageKey               String?        @unique
+  mimeType                 String?
+  archiveFormat            ArchiveFormat?
+  archiveEntries           Json?
+  archiveEntryCount        Int?
+  archiveUncompressedBytes BigInt?
+  omsiFolders              String[]       @default([])
+  scanStatus               ScanStatus?
+  scanNotes                Json?
+  errorCode                String?
+  modId                    String?
+  resultFileId             String?        @unique
+  resultFile               ModFile?       @relation(fields: [resultFileId], references: [id], onDelete: SetNull)
+  expiresAt                DateTime
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([userId, status])
+}
+
+model DownloadEvent {
+  id        String   @id @default(cuid())
+  fileId    String
+  file      ModFile  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  modId     String
+  mod       Mod      @relation(fields: [modId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// HMAC-SHA256(IP) – nikdy neukladáme surovú IP adresu
+  ipHash    String   @db.Char(64)
+  createdAt DateTime @default(now())
+
+  @@index([modId, createdAt])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String?
+  targetId   String?
+  ipHash     String?  @db.Char(64)
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action])
+}
+
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+}

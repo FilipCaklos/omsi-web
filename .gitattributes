@@ -1,0 +1,6 @@
+# Linux server: shell skripty, Dockerfile a konfigurácia musia mať LF konce riadkov
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.zip binary

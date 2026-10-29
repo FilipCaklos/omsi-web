@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/* Tmavý režim sa riadi atribútom data-theme na <html> (cookie "theme"), nie systémom. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ─── Farebné tokeny: svetlý režim = papier cestovného poriadku ─── */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --raised: #eaeef3;
+  --line: #d5dce6;
+  --line-strong: #bcc6d3;
+  --text: #11151c;
+  --muted: #5b6575;
+
+  --amber: #e59500;
+  --amber-hover: #cc8400;
+  --amber-ink: #1a1200;
+  --amber-soft: #fff3dc;
+  --signal: #16a34a;
+  --signal-soft: #e6f6ec;
+  --alert: #dc2626;
+  --alert-soft: #fdecec;
+
+  color-scheme: light;
+}
+
+/* ─── Tmavý režim (predvolený) = asfalt ─── */
+:root[data-theme="dark"] {
+  --bg: #0e1116;
+  --surface: #161b22;
+  --raised: #1e242e;
+  --line: #2b3240;
+  --line-strong: #3a4352;
+  --text: #ecf0f6;
+  --muted: #8c96a6;
+
+  --amber: #f59e0b;
+  --amber-hover: #e59500;
+  --amber-ink: #1a1200;
+  --amber-soft: #2b2110;
+  --signal: #22c55e;
+  --signal-soft: #10251a;
+  --alert: #ef4444;
+  --alert-soft: #2a1414;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-amber: var(--amber);
+  --color-amber-hover: var(--amber-hover);
+  --color-amber-ink: var(--amber-ink);
+  --color-amber-soft: var(--amber-soft);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "Cascadia Mono", monospace;
+
+  --radius-sm: 3px;
+  --radius-md: 5px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01";
+  }
+
+  ::selection {
+    background: var(--amber);
+    color: var(--amber-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* LED páska ako na BUSE informačnom paneli – iba pre označenia liniek a kategórií */
+  .led-tag {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: #0b0d10;
+    border: 1px solid #2a2f38;
+    border-radius: var(--radius-sm);
+    padding: 1px 6px;
+    font-size: 11px;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+
+  /* Prázdny náhľad: šrafovanie ako na zastávkovom označníku, nie generický gradient */
+  .no-screenshot {
+    background-color: var(--raised);
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent 0 10px,
+      color-mix(in srgb, var(--line) 70%, transparent) 10px 11px
+    );
+  }
+
+  /* Sanitizovaný Markdown (popisy, recenzie, devlogy) */
+  .prose-omsi {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+  }
+  .prose-omsi > * + * { margin-top: 0.75em; }
+  .prose-omsi h2 { font-size: 1.15rem; font-weight: 700; margin-top: 1.4em; }
+  .prose-omsi h3 { font-size: 1.02rem; font-weight: 700; margin-top: 1.2em; }
+  .prose-omsi h4 { font-weight: 700; }
+  .prose-omsi a { color: var(--amber); text-decoration: underline; text-underline-offset: 2px; }
+  .prose-omsi ul { list-style: disc; padding-left: 1.3em; }
+  .prose-omsi ol { list-style: decimal; padding-left: 1.3em; }
+  .prose-omsi li + li { margin-top: 0.2em; }
+  .prose-omsi code { font-family: var(--font-mono); font-size: 0.88em; background: var(--raised); padding: 0.1em 0.35em; border-radius: 3px; }
+  .prose-omsi pre { background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0.75em; overflow-x: auto; }
+  .prose-omsi pre code { background: none; padding: 0; }
+  .prose-omsi blockquote { border-left: 3px solid var(--line-strong); padding-left: 0.9em; color: var(--muted); }
+  .prose-omsi table { width: 100%; border-collapse: collapse; font-size: 0.92em; display: block; overflow-x: auto; }
+  .prose-omsi th, .prose-omsi td { border: 1px solid var(--line); padding: 0.35em 0.6em; text-align: left; }
+  .prose-omsi th { background: var(--raised); font-weight: 600; }
+  .prose-omsi hr { border: 0; border-top: 1px solid var(--line); }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
