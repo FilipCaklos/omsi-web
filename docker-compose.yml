@@ -4,8 +4,6 @@ x-app-env: &app-env
   NODE_ENV: production
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
   REDIS_URL: redis://redis:6379/0
-  SMTP_HOST: mailpit
-  SMTP_PORT: "1025"
   STORAGE_LOCAL_ROOT: /data/storage
   # IP klienta nastavuje brána (deploy/Caddyfile) – hlavičku od klienta prepíše
   CLIENT_IP_HEADER: x-real-ip

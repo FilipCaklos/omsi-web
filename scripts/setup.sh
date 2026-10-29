@@ -61,6 +61,9 @@ if [ ! -f .env ]; then
   set_env DOWNLOAD_TOKEN_SECRET "$(secret 48)"
   set_env IP_HASH_SECRET "$(secret 48)"
   set_env SEED_DEMO_DATA "$DEMO_DATA"
+  # Emaily sa zatiaľ zachytávajú v Mailpite (http://127.0.0.1:8025); pre skutočné odosielanie zmeň SMTP_* v .env
+  set_env SMTP_HOST mailpit
+  set_env SMTP_PORT 1025
   chmod 600 .env
 
   case "$APP_URL" in

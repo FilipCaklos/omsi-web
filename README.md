@@ -96,8 +96,8 @@ automaticky iba pri `https://` adrese. Potom nastav aj:
 
 - vlastné `TURNSTILE_SITE_KEY` a `TURNSTILE_SECRET_KEY` (testovacie kľúče fungujú iba na localhoste a v LAN),
 - skutočný SMTP server (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`, `MAIL_FROM`) –
-  v predvolenom stave sa všetky emaily zachytávajú v Mailpite na `http://127.0.0.1:8025`. Hodnoty SMTP
-  v sekcii `x-app-env` v `docker-compose.yml` majú prednosť pred `.env`, takže ich treba zmeniť tam,
+  v predvolenom stave (`SMTP_HOST=mailpit`) sa všetky emaily zachytávajú v Mailpite na `http://127.0.0.1:8025`.
+  Napr. pre Brevo: `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`,
 - `TRUSTED_PROXIES=private_ranges` – brána potom uverí IP, ktorú pošle tvoja proxy. Bez tohto nastavenia by
   všetci návštevníci mali IP tvojej proxy a zdieľali by jeden limit.
 
