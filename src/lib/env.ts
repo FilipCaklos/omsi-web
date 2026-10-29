@@ -37,6 +37,8 @@ const envSchema = z
     /** Právne stránky: kto portál prevádzkuje a kam písať (GDPR, autorské práva). Prázdne = kontakt@<doména>. */
     LEGAL_OPERATOR_NAME: z.string().trim().max(200).default(""),
     CONTACT_EMAIL: z.union([z.email(), z.literal("")]).default(""),
+    /** Pozvánka na Discord server komunity (pätička webu, podpis v emailoch); prázdne = nezobrazovať */
+    PUBLIC_DISCORD_URL: z.union([z.url({ protocol: /^https$/ }), z.literal("")]).default(""),
 
     TURNSTILE_SITE_KEY: z.string().min(1),
     TURNSTILE_SECRET_KEY: z.string().min(1),

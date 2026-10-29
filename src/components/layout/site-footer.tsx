@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { formatNumber } from "@/lib/format";
 import { getDictionary } from "@/i18n/server";
+import { env } from "@/lib/env";
 import { getSiteTotals } from "@/server/catalog";
 
 export async function SiteFooter() {
@@ -20,6 +21,10 @@ export async function SiteFooter() {
             <Link href="/podmienky" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.terms}</Link>
             <Link href="/ochrana-sukromia" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.privacy}</Link>
             <Link href="/kontakt" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.contact}</Link>
+            {env().PUBLIC_DISCORD_URL && (
+              <a href={env().PUBLIC_DISCORD_URL} target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 hover:text-text">Discord</a>
+            )}
+            <a href="/feed.xml" className="underline decoration-line underline-offset-2 hover:text-text">RSS</a>
           </nav>
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1 self-start font-mono text-xs md:justify-self-end">
