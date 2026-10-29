@@ -66,6 +66,22 @@ export async function guardForm(options: {
   return null;
 }
 
+/**
+ * Pri chybe pridá do stavu odoslané (necitlivé) hodnoty. React po odoslaní formulár resetuje
+ * na defaultValue – formulár ich z state.values znova vyplní a používateľ nestratí, čo napísal.
+ */
+export function keepValues(state: FormState, formData: FormData, names: readonly string[]): FormState {
+  if (state.status !== "error") return state;
+  const values: Record<string, string> = { ...state.values };
+  for (const name of names) {
+    values[name] = formData
+      .getAll(name)
+      .filter((v): v is string => typeof v === "string")
+      .join(",");
+  }
+  return { ...state, values };
+}
+
 /** Hodnota z FormData ako reťazec (alebo undefined) – pre zod parse. */
 export function field(formData: FormData, name: string): string | undefined {
   const value = formData.get(name);

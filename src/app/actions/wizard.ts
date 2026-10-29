@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { AuthErrorCode, FormState } from "@/lib/form-state";
-import { failure, field, previousAttempt, requestContext } from "@/server/action-guard";
+import { failure, field, keepValues, previousAttempt, requestContext } from "@/server/action-guard";
 import { audit } from "@/server/audit";
 import { HttpError } from "@/server/http";
 import { MARKDOWN_MAX_LENGTH, parseYoutubeId, renderMarkdown } from "@/server/markdown";
@@ -271,6 +271,10 @@ const attachSchema = z.object({
 });
 
 export async function attachFileAction(state: FormState, formData: FormData): Promise<FormState> {
+  return keepValues(await attachFileInner(state, formData), formData, ["displayName", "description", "mirrorUrl", "mirrorLabel", "patchForFileId"]);
+}
+
+async function attachFileInner(state: FormState, formData: FormData): Promise<FormState> {
   const attempt = previousAttempt(state);
   const who = await author(attempt);
   if ("error" in who) return who.error;

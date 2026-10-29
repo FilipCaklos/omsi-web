@@ -63,7 +63,7 @@ function AttachForm({
   const findings = upload.findings ?? [];
 
   return (
-    <form action={action} className="space-y-3 rounded-[5px] border border-line bg-bg p-3" noValidate>
+    <form action={action} className="space-y-3 rounded-[5px] border border-line bg-bg p-3" noValidate key={state.attempt}>
       <input type="hidden" name="modId" value={modId} />
       <input type="hidden" name="uploadId" value={upload.id} />
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -98,7 +98,7 @@ function AttachForm({
         <TextField
           name="displayName"
           label={w.displayName}
-          defaultValue={kind === "MAIN" ? t.modPage.mainFile : upload.filename.replace(/\.[^.]+$/, "")}
+          defaultValue={state.values?.displayName ?? (kind === "MAIN" ? t.modPage.mainFile : upload.filename.replace(/\.[^.]+$/, ""))}
           maxLength={120}
           error={err("displayName")}
           key={kind}
@@ -107,7 +107,7 @@ function AttachForm({
       {kind === "PATCH" && (
         <label className="block space-y-1">
           <span className="block text-sm font-medium">{w.patchFor}</span>
-          <select name="patchForFileId" className="h-10 w-full rounded-[5px] border border-line bg-surface px-2 text-sm">
+          <select name="patchForFileId" defaultValue={state.values?.patchForFileId} className="h-10 w-full rounded-[5px] border border-line bg-surface px-2 text-sm">
             {patchTargets.map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
             ))}
@@ -115,10 +115,10 @@ function AttachForm({
           {err("patchForFileId") && <span className="block text-xs text-alert">{err("patchForFileId")}</span>}
         </label>
       )}
-      <TextField name="description" label={w.fileDescription} required={false} maxLength={500} />
+      <TextField name="description" label={w.fileDescription} required={false} maxLength={500} defaultValue={state.values?.description} />
       <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
-        <TextField name="mirrorUrl" label={w.mirrorUrl} required={false} maxLength={500} error={err("mirrorUrl")} />
-        <TextField name="mirrorLabel" label={w.mirrorLabel} required={false} maxLength={40} />
+        <TextField name="mirrorUrl" label={w.mirrorUrl} required={false} maxLength={500} error={err("mirrorUrl")} defaultValue={state.values?.mirrorUrl} />
+        <TextField name="mirrorLabel" label={w.mirrorLabel} required={false} maxLength={40} defaultValue={state.values?.mirrorLabel} />
       </div>
       <div className="sm:w-52">
         <SubmitButton>{w.attach}</SubmitButton>

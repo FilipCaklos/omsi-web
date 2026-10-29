@@ -36,7 +36,7 @@ export function PlanForm({
   const year = new Date().getFullYear();
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form action={action} className="space-y-5" noValidate key={state.attempt}>
       <input type="hidden" name="modId" value={modId} />
       <input type="hidden" name="progress" value={JSON.stringify(parts.filter((x) => x.label.trim()))} />
       {state.status === "success" && <FormAlert tone="success">{p.saved}</FormAlert>}
@@ -61,14 +61,14 @@ export function PlanForm({
         {mode === "EXACT_DATE" && (
           <label className="block max-w-xs space-y-1">
             <span className="block text-sm">{p.releaseAt}</span>
-            <input type="datetime-local" name="releaseAt" defaultValue={initial.releaseAt} className="h-10 w-full rounded-[5px] border border-line bg-bg px-2 font-mono text-sm" />
+            <input type="datetime-local" name="releaseAt" defaultValue={state.values?.releaseAt ?? initial.releaseAt} className="h-10 w-full rounded-[5px] border border-line bg-bg px-2 font-mono text-sm" />
           </label>
         )}
         {mode === "WINDOW" && (
           <div className="flex flex-wrap gap-3">
             <label className="space-y-1">
               <span className="block text-sm">{p.windowPart}</span>
-              <select name="windowPart" defaultValue={initial.windowPart} className="h-10 rounded-[5px] border border-line bg-bg px-2 text-sm">
+              <select name="windowPart" defaultValue={state.values?.windowPart || initial.windowPart} className="h-10 rounded-[5px] border border-line bg-bg px-2 text-sm">
                 {Object.entries(t.release.windowPart).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -76,7 +76,7 @@ export function PlanForm({
             </label>
             <label className="space-y-1">
               <span className="block text-sm">{p.windowYear}</span>
-              <select name="windowYear" defaultValue={String(initial.windowYear)} className="h-10 rounded-[5px] border border-line bg-bg px-2 font-mono text-sm">
+              <select name="windowYear" defaultValue={state.values?.windowYear || String(initial.windowYear)} className="h-10 rounded-[5px] border border-line bg-bg px-2 font-mono text-sm">
                 {Array.from({ length: 6 }, (_, i) => year + i).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
@@ -85,7 +85,7 @@ export function PlanForm({
           </div>
         )}
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="noEtaQuestions" defaultChecked={initial.noEtaQuestions} className="size-4 accent-[var(--amber)]" />
+          <input type="checkbox" name="noEtaQuestions" defaultChecked={state.values ? state.values.noEtaQuestions === "on" : initial.noEtaQuestions} className="size-4 accent-[var(--amber)]" />
           {p.noEtaQuestions}
         </label>
       </fieldset>

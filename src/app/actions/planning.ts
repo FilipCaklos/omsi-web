@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import type { FormState } from "@/lib/form-state";
 import { can } from "@/lib/rbac";
 import { localDateTimeToUtc } from "@/lib/timezone";
-import { failure, field, previousAttempt, requestContext } from "@/server/action-guard";
+import { failure, field, keepValues, previousAttempt, requestContext } from "@/server/action-guard";
 import { audit } from "@/server/audit";
 import { checkVersionReadiness } from "@/server/mods/publish";
 import { checkPlannedReadiness } from "@/server/mods/releases";
@@ -47,6 +47,10 @@ const planSchema = z.object({
 
 /** Uloží režim dátumu vydania a stav dokončenia po častiach. */
 export async function savePlanAction(state: FormState, formData: FormData): Promise<FormState> {
+  return keepValues(await savePlanInner(state, formData), formData, ["releaseAt", "windowPart", "windowYear", "noEtaQuestions"]);
+}
+
+async function savePlanInner(state: FormState, formData: FormData): Promise<FormState> {
   const attempt = previousAttempt(state);
   const ctx = await owner(attempt, field(formData, "modId"));
   if ("error" in ctx) return ctx.error;

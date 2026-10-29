@@ -69,7 +69,7 @@ export function DetailsForm({
   const listFrom = (key: string, saved: string[]) => (draft ? (draft[key] ?? "").split(",").filter(Boolean) : saved);
 
   return (
-    <form action={action} className="space-y-5" noValidate>
+    <form action={action} className="space-y-5" noValidate key={state.attempt}>
       <input type="hidden" name="modId" value={modId} />
       {state.status === "error" && state.error && !state.fieldErrors && <FormAlert tone="error">{formatError(t, state.error)}</FormAlert>}
 

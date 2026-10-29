@@ -23,7 +23,7 @@ import { DevlogList } from "@/components/mod/devlog-list";
 import { DownloadCenterPanel } from "@/components/mod/download-center";
 import { FollowButton } from "@/components/mod/follow-button";
 import { PlannedPanel } from "@/components/mod/planned-panel";
-import { ReportForm } from "@/components/mod/report-form";
+import { GuestReportHint, ReportForm } from "@/components/mod/report-form";
 import { Gallery } from "@/components/mod/gallery";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -233,7 +233,7 @@ export default async function ModPage({ params }: Params) {
       where: { modId: mod.id, hiddenAt: null },
       orderBy: { createdAt: "desc" },
       take: 30,
-      select: { id: true, rating: true, bodyHtml: true, createdAt: true, user: { select: { username: true, name: true } }, version: { select: { version: true } } },
+      select: { id: true, rating: true, bodyHtml: true, createdAt: true, user: { select: { id: true, username: true, name: true } }, version: { select: { version: true } } },
     }),
     user ? db().review.findUnique({ where: { modId_userId: { modId: mod.id, userId: user.id } }, select: { rating: true, body: true } }) : null,
     db().bugReport.findMany({
@@ -257,7 +257,7 @@ export default async function ModPage({ params }: Params) {
           where: { hiddenAt: null },
           orderBy: { createdAt: "asc" },
           take: 100,
-          select: { id: true, bodyHtml: true, createdAt: true, user: { select: { username: true, name: true } } },
+          select: { id: true, bodyHtml: true, createdAt: true, user: { select: { id: true, username: true, name: true } } },
         },
       },
     }),
@@ -373,9 +373,10 @@ export default async function ModPage({ params }: Params) {
               <ReportForm
                 t={t}
                 modId={mod.id}
-                files={[mod.center.main, ...mod.center.patches, ...mod.center.optional].flatMap((f) => (f ? [{ id: f.id, name: f.displayName }] : []))}
+                target={{ kind: "mod", files: [mod.center.main, ...mod.center.patches, ...mod.center.optional].flatMap((f) => (f ? [{ id: f.id, name: f.displayName }] : [])) }}
               />
             )}
+            {!user && <GuestReportHint t={t} signInHref={`/prihlasenie?next=${encodeURIComponent(`/mod/${mod.slug}`)}`} />}
           </aside>
 
           <div className="min-w-0 space-y-10 lg:order-1">
@@ -415,6 +416,8 @@ export default async function ModPage({ params }: Params) {
                   locale={locale}
                   signedIn={user !== null}
                   canComment={user?.emailVerified === true}
+                  modId={mod.id}
+                  viewerId={user?.id ?? null}
                   noEtaNote={mod.plannedRelease?.noEtaQuestions === true && mod.plannedRelease.releasedAt === null}
                   signInHref={`/prihlasenie?next=${encodeURIComponent(`/mod/${mod.slug}#devlog`)}`}
                 />
@@ -464,6 +467,11 @@ export default async function ModPage({ params }: Params) {
                           {review.version && <span className="font-mono">{t.reviews.forVersion} v{review.version.version}</span>}
                         </p>
                         <div className="prose-omsi text-sm" dangerouslySetInnerHTML={{ __html: review.bodyHtml }} />
+                        {user && user.id !== review.user.id && (
+                          <div className="mt-2">
+                            <ReportForm t={t} modId={mod.id} target={{ kind: "review", reviewId: review.id }} />
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

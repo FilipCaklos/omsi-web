@@ -4,6 +4,7 @@ import type { AppLocale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { formatDateTime } from "@/lib/format";
 import { DevlogCommentForm } from "./devlog-comment-form";
+import { ReportForm } from "./report-form";
 
 export type DevlogView = {
   id: string;
@@ -11,7 +12,7 @@ export type DevlogView = {
   bodyHtml: string;
   createdAt: Date;
   images: { id: string }[];
-  comments: { id: string; bodyHtml: string; createdAt: Date; user: { username: string; name: string } }[];
+  comments: { id: string; bodyHtml: string; createdAt: Date; user: { id: string; username: string; name: string } }[];
 };
 
 /** Devlogy s fotkami a diskusiou – zostávajú na stránke aj po vydaní ako história vývoja. */
@@ -23,6 +24,8 @@ export function DevlogList({
   canComment,
   noEtaNote,
   signInHref,
+  modId,
+  viewerId,
 }: {
   devlogs: DevlogView[];
   t: Dictionary;
@@ -31,6 +34,9 @@ export function DevlogList({
   canComment: boolean;
   noEtaNote: boolean;
   signInHref: string;
+  /** Pre tlačidlo Nahlásiť pri komentároch (iba prihlásený, nie pri vlastnom) */
+  modId?: string;
+  viewerId?: string | null;
 }) {
   if (devlogs.length === 0) return <p className="text-sm text-muted">{t.planned.noDevlogs}</p>;
   return (
@@ -65,6 +71,7 @@ export function DevlogList({
                       <Link href={`/autor/${c.user.username}`} className="font-semibold text-text hover:text-amber">{c.user.name}</Link> · {formatDateTime(locale, c.createdAt)}
                     </p>
                     <div className="prose-omsi" dangerouslySetInnerHTML={{ __html: c.bodyHtml }} />
+                    {modId && viewerId && viewerId !== c.user.id && <ReportForm t={t} modId={modId} target={{ kind: "comment", commentId: c.id }} />}
                   </div>
                 ))}
                 {noEtaNote && (

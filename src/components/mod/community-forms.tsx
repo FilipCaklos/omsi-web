@@ -47,17 +47,17 @@ export function ReviewForm({ t, modId, initial }: { t: Dictionary; modId: string
   const [state, action] = useActionState(upsertReviewAction, INITIAL_FORM_STATE);
   const bodyError = fieldMessage(t, state, "body");
   return (
-    <form action={action} className="space-y-3 rounded-[5px] border border-line bg-surface p-4" noValidate>
+    <form action={action} className="space-y-3 rounded-[5px] border border-line bg-surface p-4" noValidate key={state.attempt}>
       <input type="hidden" name="modId" value={modId} />
       {state.status === "success" && <FormAlert tone="success">{t.reviews.saved}</FormAlert>}
       <TopError t={t} state={state} />
-      <StarInput initial={initial?.rating ?? 0} label={t.reviews.rating} />
+      <StarInput initial={Number(state.values?.rating || initial?.rating || 0)} label={t.reviews.rating} />
       {fieldMessage(t, state, "rating") && <p className="text-xs text-alert">{fieldMessage(t, state, "rating")}</p>}
       <div className="space-y-1">
         <label htmlFor="review-body" className="block text-sm font-medium">
           {t.reviews.body}
         </label>
-        <textarea id="review-body" name="body" rows={5} maxLength={5000} defaultValue={initial?.body ?? ""} className={`${textareaClass} ${bodyError ? "border-alert" : "border-line"}`} />
+        <textarea id="review-body" name="body" rows={5} maxLength={5000} defaultValue={state.values?.body ?? initial?.body ?? ""} className={`${textareaClass} ${bodyError ? "border-alert" : "border-line"}`} />
         <p className={`text-xs ${bodyError ? "text-alert" : "text-muted"}`}>{bodyError ?? t.reviews.bodyHint}</p>
       </div>
       <div className="sm:w-56">

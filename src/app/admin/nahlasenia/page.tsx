@@ -23,6 +23,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Admi
       mod: { select: { title: true, slug: true, status: true } },
       file: { select: { displayName: true } },
       review: { select: { id: true, body: true } },
+      comment: { select: { id: true, body: true } },
     },
   });
   const r = t.admin.reports;
@@ -50,7 +51,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Admi
                 {report.file && <span className="text-xs text-muted">· {report.file.displayName}</span>}
               </div>
               <p className="whitespace-pre-line">{report.details}</p>
-              {report.review && <blockquote className="border-l-2 border-line pl-3 text-xs text-muted">{report.review.body.slice(0, 400)}</blockquote>}
+              {report.review && (
+                <blockquote className="border-l-2 border-line pl-3 text-xs text-muted">
+                  <span className="font-semibold">{r.review}:</span> {report.review.body.slice(0, 400)}
+                </blockquote>
+              )}
+              {report.comment && (
+                <blockquote className="border-l-2 border-line pl-3 text-xs text-muted">
+                  <span className="font-semibold">{r.comment}:</span> {report.comment.body.slice(0, 400)}
+                </blockquote>
+              )}
               <p className="font-mono text-[11px] text-muted">
                 {r.reporter}: @{report.reporter.username} · {formatDateTime(locale, report.createdAt)}
                 {report.resolvedBy && ` · @${report.resolvedBy.username}${report.resolutionNote ? `: ${report.resolutionNote}` : ""}`}
@@ -68,6 +78,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Admi
                   {report.review && (
                     <label className="flex items-center gap-1.5 text-xs">
                       <input type="checkbox" name="hideReview" className="accent-[var(--alert)]" /> {r.hideReview}
+                    </label>
+                  )}
+                  {report.comment && (
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" name="hideComment" className="accent-[var(--alert)]" /> {r.hideComment}
                     </label>
                   )}
                   <button type="submit" name="status" value="RESOLVED" className={primaryButtonClass}>{r.resolve}</button>

@@ -14,6 +14,9 @@ export function notificationText(t: Dictionary, type: NotificationKind, data: un
     if (key === "status" && typeof value === "string" && value in t.bugs.status) {
       return t.bugs.status[value as keyof Dictionary["bugs"]["status"]];
     }
+    if (key === "reason" && typeof value === "string" && value in t.admin.reports.reasons) {
+      return t.admin.reports.reasons[value as keyof Dictionary["admin"]["reports"]["reasons"]];
+    }
     return value === undefined || value === null ? "" : String(value);
   });
 }

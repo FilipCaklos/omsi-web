@@ -3,7 +3,7 @@ import { CalendarClock, Clock, Download, RefreshCw, Sparkles, TrendingUp, Wrench
 import { CategoryStrip } from "@/components/layout/category-strip";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { FileMeta, ModCard, ModThumb } from "@/components/catalog/mod-card";
+import { FileMeta, ModBadges, ModCard, ModThumb } from "@/components/catalog/mod-card";
 import { RankingTabs } from "@/components/catalog/ranking-tabs";
 import { EmptyState, SectionHeading } from "@/components/catalog/section-heading";
 import { UpcomingCard } from "@/components/catalog/upcoming-card";
@@ -37,6 +37,7 @@ function FeaturedRow({ mod, locale, t }: { mod: ModCardData; locale: AppLocale; 
           </Link>
         </h3>
         <p className="line-clamp-2 text-sm text-muted">{mod.summary}</p>
+        <ModBadges mod={mod} t={t} />
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-1">
           <FileMeta mod={mod} locale={locale} />
           <Link

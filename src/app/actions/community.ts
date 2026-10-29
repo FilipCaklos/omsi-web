@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import type { FormState } from "@/lib/form-state";
 import { can } from "@/lib/rbac";
-import { failure, field, guardForm, previousAttempt, requestContext } from "@/server/action-guard";
+import { failure, field, guardForm, keepValues, previousAttempt, requestContext } from "@/server/action-guard";
 import { audit } from "@/server/audit";
 import { renderMarkdown } from "@/server/markdown";
 import { notify } from "@/server/notifications";
@@ -47,6 +47,10 @@ const reviewSchema = z.object({
 });
 
 export async function upsertReviewAction(state: FormState, formData: FormData): Promise<FormState> {
+  return keepValues(await upsertReviewInner(state, formData), formData, ["rating", "body"]);
+}
+
+async function upsertReviewInner(state: FormState, formData: FormData): Promise<FormState> {
   const attempt = previousAttempt(state);
   const who = await actor(attempt);
   if ("error" in who) return who.error;
@@ -270,10 +274,16 @@ const reportSchema = z.object({
   reason: z.enum(["STOLEN_CONTENT", "MISSING_CREDITS", "UNAUTHORIZED_REUPLOAD", "BROKEN_ARCHIVE", "SUSPICIOUS_FILE", "SPAM", "OFFENSIVE", "OTHER"]),
   details: z.string().trim().min(10).max(2000),
   fileId: z.string().regex(/^[a-z0-9]{10,40}$/).optional(),
+  reviewId: z.string().regex(/^[a-z0-9]{10,40}$/).optional(),
+  commentId: z.string().regex(/^[a-z0-9]{10,40}$/).optional(),
 });
 
 /** „Nahlásiť“ – kradnutý model, chýbajúce kredity, reupload, poškodený alebo podozrivý súbor. */
 export async function createReportAction(state: FormState, formData: FormData): Promise<FormState> {
+  return keepValues(await createReportInner(state, formData), formData, ["reason", "details", "fileId"]);
+}
+
+async function createReportInner(state: FormState, formData: FormData): Promise<FormState> {
   const attempt = previousAttempt(state);
   const who = await actor(attempt);
   if ("error" in who) return who.error;
@@ -282,7 +292,7 @@ export async function createReportAction(state: FormState, formData: FormData): 
   const modId = formData.get("modId");
   const mod =
     typeof modId === "string" && /^[a-z0-9]{10,40}$/.test(modId)
-      ? await db().mod.findFirst({ where: { id: modId, status: { in: ["PUBLISHED", "PLANNED", "SCHEDULED"] } }, select: { id: true, slug: true } })
+      ? await db().mod.findFirst({ where: { id: modId, status: { in: ["PUBLISHED", "PLANNED", "SCHEDULED"] } }, select: { id: true, slug: true, title: true } })
       : null;
   if (!mod) return failure(attempt, "MOD_NOT_FOUND");
 
@@ -290,6 +300,8 @@ export async function createReportAction(state: FormState, formData: FormData): 
     reason: field(formData, "reason"),
     details: field(formData, "details") ?? "",
     fileId: field(formData, "fileId") || undefined,
+    reviewId: field(formData, "reviewId") || undefined,
+    commentId: field(formData, "commentId") || undefined,
   });
   if (!parsed.success) {
     const path = String(parsed.error.issues[0]?.path[0] ?? "");
@@ -301,22 +313,47 @@ export async function createReportAction(state: FormState, formData: FormData): 
   const blocked = await guardForm({ ctx, attempt, requireTurnstile: false, limits: [[RATE_LIMITS.reportSubmit, user.id]], auditActorId: user.id });
   if (blocked) return blocked;
 
-  const duplicate = await db().report.findFirst({ where: { reporterId: user.id, modId: mod.id, status: "OPEN" }, select: { id: true } });
+  // Recenzia a komentár musia patriť k tomuto modu (komentár je v diskusii pod jeho devlogom); vlastný príspevok sa nenahlasuje
+  const review = parsed.data.reviewId
+    ? await db().review.findFirst({ where: { id: parsed.data.reviewId, modId: mod.id, hiddenAt: null }, select: { id: true, userId: true } })
+    : null;
+  const comment = parsed.data.commentId
+    ? await db().comment.findFirst({
+        where: { id: parsed.data.commentId, hiddenAt: null, OR: [{ modId: mod.id }, { devlog: { modId: mod.id } }] },
+        select: { id: true, userId: true },
+      })
+    : null;
+  if ((parsed.data.reviewId && !review) || (parsed.data.commentId && !comment)) return failure(attempt, "MOD_NOT_FOUND");
+  if (review?.userId === user.id || comment?.userId === user.id) return failure(attempt, "FORBIDDEN");
+
+  const duplicate = await db().report.findFirst({
+    where: { reporterId: user.id, modId: mod.id, reviewId: review?.id ?? null, commentId: comment?.id ?? null, status: "OPEN" },
+    select: { id: true },
+  });
   if (duplicate) return failure(attempt, "REPORT_DUPLICATE");
-  const file = parsed.data.fileId
+  const file = parsed.data.fileId && !review && !comment
     ? await db().modFile.findFirst({ where: { id: parsed.data.fileId, modId: mod.id }, select: { id: true } })
     : null;
 
   const report = await db().report.create({
     data: {
       reporterId: user.id,
-      targetType: file ? "FILE" : "MOD",
+      targetType: review ? "REVIEW" : comment ? "COMMENT" : file ? "FILE" : "MOD",
       modId: mod.id,
       fileId: file?.id ?? null,
+      reviewId: review?.id ?? null,
+      commentId: comment?.id ?? null,
       reason: parsed.data.reason,
       details: parsed.data.details,
     },
   });
-  await audit({ action: "report.created", actorId: user.id, targetType: "report", targetId: report.id, metadata: { modId: mod.id, reason: report.reason }, headers: ctx.headers });
+  await audit({ action: "report.created", actorId: user.id, targetType: "report", targetId: report.id, metadata: { modId: mod.id, reason: report.reason, target: report.targetType }, headers: ctx.headers });
+
+  // Moderátori sa o nahlásení dozvedia hneď (zvonček + súhrnný email podľa ich nastavení)
+  const moderators = await db().user.findMany({
+    where: { role: { in: ["MODERATOR", "ADMIN"] }, bannedAt: null, id: { not: user.id } },
+    select: { id: true },
+  });
+  await notify(moderators.map((m) => ({ userId: m.id, type: "REPORT_NEW" as const, modId: mod.id, link: "/admin/nahlasenia", data: { modTitle: mod.title, reason: report.reason } })));
   return { status: "success", attempt: attempt + 1 };
 }

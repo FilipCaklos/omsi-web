@@ -79,7 +79,7 @@ export async function resolveReportAction(formData: FormData): Promise<void> {
   const status = field(formData, "status") === "DISMISSED" ? "DISMISSED" : "RESOLVED";
   const note = (field(formData, "note") ?? "").trim().slice(0, 1000);
   const report = id.safeParse(reportId).success
-    ? await db().report.findUnique({ where: { id: reportId }, select: { id: true, status: true, reporterId: true, modId: true, reviewId: true, mod: { select: { title: true, slug: true, author: { select: { id: true, role: true } } } } } })
+    ? await db().report.findUnique({ where: { id: reportId }, select: { id: true, status: true, reporterId: true, modId: true, reviewId: true, commentId: true, mod: { select: { title: true, slug: true, author: { select: { id: true, role: true } } } } } })
     : null;
   if (!report || report.status !== "OPEN") back(formData, "/admin/nahlasenia", { ok: false, error: "NOTHING_PENDING" });
 
@@ -97,6 +97,10 @@ export async function resolveReportAction(formData: FormData): Promise<void> {
     const aggregate = await db().review.aggregate({ where: { modId: review.modId, hiddenAt: null }, _avg: { rating: true }, _count: { _all: true } });
     await db().mod.update({ where: { id: review.modId }, data: { ratingAvg: aggregate._avg.rating ?? 0, ratingCount: aggregate._count._all } });
     await audit({ action: "review.hidden", actorId: actor.id, targetType: "review", targetId: report.reviewId });
+  }
+  if (formData.get("hideComment") === "on" && report.commentId) {
+    await db().comment.update({ where: { id: report.commentId }, data: { hiddenAt: new Date() } });
+    await audit({ action: "comment.hidden", actorId: actor.id, targetType: "comment", targetId: report.commentId });
   }
   await notify({ userId: report.reporterId, type: "REPORT_RESOLVED", modId: report.modId, link: report.mod ? `/mod/${report.mod.slug}` : null, data: { modTitle: report.mod?.title ?? "" } });
   await audit({ action: status === "RESOLVED" ? "report.resolved" : "report.dismissed", actorId: actor.id, targetType: "report", targetId: report.id, metadata: { note } });

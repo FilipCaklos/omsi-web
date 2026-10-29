@@ -205,6 +205,8 @@ enum NotificationType {
   REVIEW_NEW
   COMMENT_REPLY
   REPORT_RESOLVED
+  /// Nové nahlásenie – pre moderátorov
+  REPORT_NEW
   SYSTEM
 }
 

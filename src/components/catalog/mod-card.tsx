@@ -45,6 +45,26 @@ export function FileMeta({ mod, locale }: { mod: ModCardData; locale: AppLocale 
   );
 }
 
+/** Odznaky modu (openOMSI, 4GB Patch) – rovnaké na karte aj v odporúčaných. */
+export function ModBadges({ mod, t }: { mod: Pick<ModCardData, "openOmsi" | "requires4GbPatch">; t: Dictionary }) {
+  if (!worksInOpenOmsi(mod.openOmsi) && !mod.requires4GbPatch) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {worksInOpenOmsi(mod.openOmsi) && (
+        <p className="rounded-[3px] bg-signal-soft px-1.5 py-0.5 text-[11px] font-medium text-signal">
+          {mod.openOmsi === "EXCLUSIVE" ? t.openOmsi.badgeExclusive : `${t.openOmsi.badge} ✓`}
+        </p>
+      )}
+      {mod.requires4GbPatch && (
+        <p className="inline-flex items-center gap-1 rounded-[3px] bg-alert-soft px-1.5 py-0.5 text-[11px] font-medium text-alert">
+          <TriangleAlert size={12} strokeWidth={2} aria-hidden />
+          {t.mod.requires4gb}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ModCard({ mod, locale, t }: { mod: ModCardData; locale: AppLocale; t: Dictionary }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-[5px] border border-line bg-surface transition-colors hover:border-line-strong">
@@ -70,17 +90,7 @@ export function ModCard({ mod, locale, t }: { mod: ModCardData; locale: AppLocal
           </p>
         </div>
         <p className="line-clamp-2 text-sm text-muted">{mod.summary}</p>
-        {worksInOpenOmsi(mod.openOmsi) && (
-          <p className="self-start rounded-[3px] bg-signal-soft px-1.5 py-0.5 text-[11px] font-medium text-signal">
-            {mod.openOmsi === "EXCLUSIVE" ? t.openOmsi.badgeExclusive : `${t.openOmsi.badge} ✓`}
-          </p>
-        )}
-        {mod.requires4GbPatch && (
-          <p className="inline-flex items-center gap-1 self-start rounded-[3px] bg-alert-soft px-1.5 py-0.5 text-[11px] font-medium text-alert">
-            <TriangleAlert size={12} strokeWidth={2} aria-hidden />
-            {t.mod.requires4gb}
-          </p>
-        )}
+        <ModBadges mod={mod} t={t} />
         <div className="mt-auto flex items-end justify-between gap-2 border-t border-line pt-2">
           <FileMeta mod={mod} locale={locale} />
           <Link
