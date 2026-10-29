@@ -202,6 +202,8 @@ type ModInput = {
   subcategoryId?: string;
   authorId: string;
   vehicleModel?: string;
+  /** Parametre kategórie (kľúče z CATEGORY_FIELDS) */
+  attributes?: Record<string, string | number | boolean | string[]>;
   tags?: string[];
   brands?: string[];
   operators?: string[];
@@ -223,6 +225,7 @@ async function createMod(input: ModInput) {
       subcategoryId: input.subcategoryId ?? null,
       authorId: input.authorId,
       vehicleModel: input.vehicleModel ?? null,
+      attributes: input.attributes ?? {},
       tags: input.tags ?? [],
       requires4GbPatch: input.requires4gb ?? false,
       status: input.status ?? "DRAFT",
@@ -312,6 +315,7 @@ async function main() {
     description: "## Obsah\n\n- 48 označníkov (SAD, ČSAD, mestské MHD)\n- Prístrešky Mabeg a betónové\n- Tabule s cestovnými poriadkami\n\nPotrebné pre mapy **Pezinok – Modra** a **Žilina – Vlčince**.",
     categoryId: ref.category("objekty-splines"),
     subcategoryId: ref.sub("objekty-splines", "oznacniky"),
+    attributes: { styl: "univerzalny", pocet: 24 },
     authorId: author,
     tags: ["oznacniky", "sad", "csad"],
     colors: ["#5a7a9a", "#d8d8d8"],
@@ -337,6 +341,7 @@ async function main() {
     description: "## Inštalácia\n\n1. Rozbaľ obsah priečinka z archívu do koreňa **OMSI 2**.\n2. Nainštaluj [Československé označníky zastávok](/mod/ceskoslovenske-oznacniky-zastavok).\n3. Aplikuj **4GB Patch**.\n\n| Linka | Trasa |\n|---|---|\n| 101 | Pezinok, AS – Modra, nám. |\n| 102 | Pezinok, AS – Modra-Harmónia |\n\nCestovné poriadky podľa stavu 2024.",
     categoryId: ref.category("mapy"),
     subcategoryId: ref.sub("mapy", "realne-cz-sk"),
+    attributes: { mesto: "Pezinok – Modra", krajina: "sk", linky: 6, obdobie: "2010–2015", ai_premavka: true, hof: true },
     authorId: author,
     tags: ["sad", "buse", "primestska", "malokarpatsko"],
     operators: [ref.operator("sad")],
@@ -390,6 +395,7 @@ async function main() {
     description: "Repainty pre freeware Karosu B 732 a SOR NB 12. Nainštaluj **po** samotných vozidlách.",
     categoryId: ref.category("repainty"),
     subcategoryId: ref.sub("repainty", "autobusy"),
+    attributes: { pre_vozidlo: "Karosa B 732, SOR NB 12", pocet: 8, obdobie: "1995–2010" },
     authorId: author,
     vehicleModel: "B 732, NB 12",
     brands: [ref.brand("karosa"), ref.brand("sor")],
@@ -416,6 +422,7 @@ async function main() {
     description: "Obsahuje skripty kasy a zvuky. Voliteľný IBIS plugin (.dll) čaká na kontrolu moderátorom.",
     categoryId: ref.category("skripty-zvuky"),
     subcategoryId: ref.sub("skripty-zvuky", "odbavovacie-systemy"),
+    attributes: { pre_vozidlo: "Karosa B 732, B 931", prepisuje: true },
     authorId: author,
     brands: [ref.brand("karosa")],
     tags: ["kasa", "emtest", "liaz"],
@@ -444,6 +451,7 @@ async function main() {
     description: "Prvý repaint, prosím o spätnú väzbu.",
     categoryId: ref.category("repainty"),
     subcategoryId: ref.sub("repainty", "autobusy"),
+    attributes: { pre_vozidlo: "Iveco Crossway LE (DLC)", pocet: 3 },
     authorId: driver,
     brands: [ref.brand("irisbus-iveco")],
     operators: [ref.operator("csad")],
@@ -470,6 +478,7 @@ async function main() {
     description: "## Projekt\n\nTrolejbus pre mapy Bratislavy. Vydanie sa odomkne **automaticky** v čase odpočtu.",
     categoryId: ref.category("trolejbusy-elektricky"),
     subcategoryId: ref.sub("trolejbusy-elektricky", "trolejbusy"),
+    attributes: { podlaha: "nizkopodlazny", clanky: 1, roky_vyroby: "2014–2016" },
     authorId: author,
     brands: [ref.brand("skoda"), ref.brand("sor")],
     operators: [ref.operator("dpb")],
@@ -508,6 +517,7 @@ async function main() {
     description: "Rozpracovaná mapa, betatest po dokončení stavby trate.",
     categoryId: ref.category("mapy"),
     subcategoryId: ref.sub("mapy", "realne-cz-sk"),
+    attributes: { mesto: "Žilina", krajina: "sk", linky: 4, ai_premavka: true },
     authorId: author,
     operators: [ref.operator("dpmz")],
     status: "PLANNED",
@@ -529,6 +539,7 @@ async function main() {
     description: "Projekt robíme vo voľnom čase.",
     categoryId: ref.category("trolejbusy-elektricky"),
     subcategoryId: ref.sub("trolejbusy-elektricky", "elektricky"),
+    attributes: { podlaha: "vysokopodlazny", clanky: 1, roky_vyroby: "1980–1997" },
     authorId: author,
     brands: [ref.brand("tatra"), ref.brand("ckd")],
     operators: [ref.operator("dpmk")],

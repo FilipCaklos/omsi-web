@@ -1,5 +1,7 @@
 import "server-only";
+import { attributeSearchTerms, readAttributes } from "@/lib/category-fields";
 import { db } from "@/lib/db";
+import { getCategoryFields } from "./category-fields";
 
 /** URL slug bez diakritiky: „Štrbské Pleso – Poprad“ → „strbske-pleso-poprad“. */
 export function slugify(input: string): string {
@@ -31,6 +33,8 @@ export async function refreshSearchExtra(modId: string): Promise<void> {
   const mod = await db().mod.findUnique({
     where: { id: modId },
     select: {
+      categoryId: true,
+      attributes: true,
       category: { select: { nameSk: true, nameCs: true } },
       subcategory: { select: { nameSk: true, nameCs: true } },
       brands: { select: { brand: { select: { name: true } } } },
@@ -48,6 +52,8 @@ export async function refreshSearchExtra(modId: string): Promise<void> {
     mod.author.username,
     ...mod.brands.map((b) => b.brand.name),
     ...mod.operators.flatMap((o) => [o.operator.name, o.operator.city ?? ""]),
+    // Parametre kategórie: mesto mapy, vozidlo repaintu, názvy vybraných možností
+    ...attributeSearchTerms(await getCategoryFields(mod.categoryId), readAttributes(mod.attributes)),
   ].filter((p): p is string => Boolean(p));
   await db().mod.update({ where: { id: modId }, data: { searchExtra: [...new Set(parts)].join(" ").slice(0, 2000) } });
 }

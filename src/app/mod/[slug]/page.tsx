@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Fragment } from "react";
 import {
   Bug,
   CalendarClock,
@@ -129,8 +130,14 @@ function Sidebar({ mod, t }: { mod: ModDetail; t: Dictionary }) {
           <ul className="divide-y divide-line">{recommended.map(depItem)}</ul>
         </div>
       )}
-      {(mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
+      {(mod.parameters.length > 0 || mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-[5px] border border-line bg-surface p-4 text-sm">
+        {mod.parameters.map((p) => (
+          <Fragment key={p.label}>
+            <dt className="text-muted">{p.label}</dt>
+            <dd>{p.href ? <Link href={p.href} className="hover:text-amber">{p.value}</Link> : p.value}</dd>
+          </Fragment>
+        ))}
         {mod.vehicleModel && (
           <>
             <dt className="text-muted">{t.modPage.vehicleModel}</dt>

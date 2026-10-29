@@ -1,8 +1,10 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import type { AppLocale } from "@/i18n/config";
+import { FILTERABLE_TYPES, filterParamName, formatAttribute, localizedLabel, readAttributes, type FieldDef } from "@/lib/category-fields";
 import { db } from "@/lib/db";
 import { canEditMod, canViewMod, type Viewer } from "./access";
+import { getCategoryFields } from "./category-fields";
 import { buildDownloadCenter, type CenterFile, type CenterVersion, type DownloadCenter } from "./download-center";
 import { mainFileIds } from "./helpers";
 import { publishDueScheduled } from "./releases";
@@ -79,6 +81,24 @@ export async function getModDetail(slug: string, viewer: Viewer, locale: AppLoca
     }
   }
   return buildDetail(slug, viewer, locale);
+}
+
+export type ModParameter = { label: string; value: string; href: string | null };
+
+/** Vyplnené parametre kategórie pre detail; hodnota filtrovateľného poľa odkazuje na filter v katalógu. */
+function modParameters(fields: FieldDef[], json: unknown, categorySlug: string, locale: AppLocale): ModParameter[] {
+  const attributes = readAttributes(json);
+  return fields.flatMap((field): ModParameter[] => {
+    const value = attributes[field.key];
+    const text = formatAttribute(field, value, locale, locale === "cs" ? "Ano" : "Áno");
+    if (text === null) return [];
+    const filterValue = field.type === "BOOLEAN" ? "1" : field.type === "SELECT" && typeof value === "string" ? value : null;
+    const href =
+      field.filterable && FILTERABLE_TYPES.includes(field.type) && filterValue !== null
+        ? `/mody?kategoria=${categorySlug}&${filterParamName(field.key)}=${encodeURIComponent(filterValue)}`
+        : null;
+    return [{ label: localizedLabel(field, locale), value: text, href }];
+  });
 }
 
 async function buildDetail(slug: string, viewer: Viewer, locale: AppLocale) {
@@ -162,6 +182,7 @@ async function buildDetail(slug: string, viewer: Viewer, locale: AppLocale) {
     category: { slug: mod.category.slug, name: locale === "cs" ? mod.category.nameCs : mod.category.nameSk },
     subcategory: mod.subcategory ? { slug: mod.subcategory.slug, name: locale === "cs" ? mod.subcategory.nameCs : mod.subcategory.nameSk } : null,
     vehicleModel: mod.vehicleModel,
+    parameters: modParameters(await getCategoryFields(mod.categoryId), mod.attributes, mod.category.slug, locale),
     tags: mod.tags,
     brands: mod.brands.map((b) => b.brand),
     operators: mod.operators.map((o) => o.operator),

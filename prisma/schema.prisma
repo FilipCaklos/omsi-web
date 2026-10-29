@@ -52,6 +52,15 @@ enum FileKind {
   OLD_VERSION
 }
 
+/// Typ vlastného poľa kategórie (parametre modu, napr. mesto pri mape, dĺžka pri autobuse)
+enum CategoryFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  MULTISELECT
+  BOOLEAN
+}
+
 enum StorageDriver {
   LOCAL_DISK
   S3_COMPATIBLE
@@ -315,9 +324,39 @@ model Category {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   subcategories Subcategory[]
+  fields        CategoryField[]
   mods          Mod[]
 
   @@index([sortOrder])
+}
+
+/// Vlastné pole kategórie – spravuje administrátor v /admin/kategorie, hodnoty sú v Mod.attributes
+model CategoryField {
+  id         String            @id @default(cuid())
+  categoryId String
+  category   Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// Kľúč v Mod.attributes a v URL filtra (a–z, 0–9, _), po vytvorení sa nemení
+  key        String
+  labelSk    String
+  labelCs    String
+  hintSk     String            @default("")
+  hintCs     String            @default("")
+  type       CategoryFieldType
+  /// Možnosti pre SELECT/MULTISELECT: [{ "value": "sk", "sk": "Slovensko", "cs": "Slovensko" }]
+  options    Json              @default("[]")
+  /// Jednotka pri čísle (napr. „m“)
+  unit       String            @default("")
+  required   Boolean           @default(false)
+  /// Zobraziť ako filter v katalógu kategórie (SELECT, MULTISELECT, BOOLEAN)
+  filterable Boolean           @default(false)
+  sortOrder  Int               @default(0)
+  /// Vypnuté pole sa nezobrazuje; vypína sa namiesto mazania, aby ho seed znova nevytvoril
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([categoryId, key])
+  @@index([categoryId, sortOrder])
 }
 
 model Subcategory {
@@ -379,6 +418,8 @@ model Mod {
   subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   vehicleModel    String?
   tags            String[]     @default([])
+  /// Hodnoty vlastných polí kategórie: { "<key>": string | number | boolean | string[] }
+  attributes      Json         @default("{}")
 
   requires4GbPatch Boolean       @default(false)
   licenseTerms     LicenseTerm[] @default([])
@@ -432,6 +473,7 @@ model Mod {
   @@index([authorId])
   @@index([isFeatured, status])
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([attributes(ops: JsonbPathOps)], type: Gin)
 }
 
 model ModBrand {

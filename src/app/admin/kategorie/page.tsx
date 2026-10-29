@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { saveCategoryAction } from "@/app/actions/admin";
-import { AdminAlert, AdminTitle, inputClass, primaryButtonClass, type AdminSearchParams } from "@/components/admin/admin-ui";
+import { AdminAlert, AdminTitle, buttonClass, inputClass, primaryButtonClass, type AdminSearchParams } from "@/components/admin/admin-ui";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { getDictionary } from "@/i18n/server";
 import { CATEGORY_ICONS, categoryIcon } from "@/lib/category-icons";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 type CategoryRow = {
   id: string; slug: string; nameSk: string; nameCs: string; descriptionSk: string; descriptionCs: string; icon: string; sortOrder: number; isActive: boolean;
+  _count?: { fields: number };
 };
 
 function CategoryForm({ t, category }: { t: Dictionary; category: CategoryRow | null }) {
@@ -35,7 +37,14 @@ function CategoryForm({ t, category }: { t: Dictionary; category: CategoryRow | 
       <label className="space-y-1 md:col-span-2"><span className="block text-xs text-muted">{c.descriptionCs}</span><input name="descriptionCs" defaultValue={category?.descriptionCs} maxLength={300} className={`${inputClass} w-full`} /></label>
       <label className="space-y-1"><span className="block text-xs text-muted">{c.sortOrder}</span><input name="sortOrder" type="number" min={0} max={999} defaultValue={category?.sortOrder ?? 99} className={`${inputClass} w-full font-mono`} /></label>
       <label className="flex items-center gap-2 self-end pb-2"><input type="checkbox" name="isActive" defaultChecked={category?.isActive ?? true} className="accent-[var(--amber)]" />{c.active}</label>
-      <div className="self-end md:col-span-2 md:justify-self-end"><button type="submit" className={primaryButtonClass}>{c.save}</button></div>
+      <div className="flex items-center gap-2 self-end md:col-span-2 md:justify-self-end">
+        {category && (
+          <Link href={`/admin/kategorie/${category.id}`} className={buttonClass}>
+            {c.fields} ({category._count?.fields ?? 0})
+          </Link>
+        )}
+        <button type="submit" className={primaryButtonClass}>{c.save}</button>
+      </div>
     </form>
   );
 }
@@ -43,7 +52,10 @@ function CategoryForm({ t, category }: { t: Dictionary; category: CategoryRow | 
 export default async function AdminCategoriesPage({ searchParams }: { searchParams: AdminSearchParams }) {
   await requirePagePermission("category:manage", "/admin/kategorie");
   const [{ t }, query] = await Promise.all([getDictionary(), searchParams]);
-  const categories = await db().category.findMany({ orderBy: { sortOrder: "asc" } });
+  const categories = await db().category.findMany({
+    orderBy: { sortOrder: "asc" },
+    include: { _count: { select: { fields: { where: { isActive: true } } } } },
+  });
   return (
     <>
       <AdminTitle>{t.admin.nav.categories}</AdminTitle>

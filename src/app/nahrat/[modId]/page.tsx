@@ -7,6 +7,9 @@ import { FormAlert } from "@/components/forms/fields";
 import { SiteHeader } from "@/components/layout/site-header";
 import { BasicsForm } from "@/components/wizard/basics-form";
 import { DetailsForm } from "@/components/wizard/details-form";
+import { readAttributes } from "@/lib/category-fields";
+import { getCategoryFields } from "@/server/mods/category-fields";
+import { categoryFacets } from "@/server/mods/reference-data";
 import { ExtrasForm } from "@/components/wizard/extras-form";
 import { FileUploader, VersionForm } from "@/components/wizard/files-step";
 import { ScreenshotsStep } from "@/components/wizard/screenshots-step";
@@ -42,6 +45,7 @@ export default async function WizardPage({ params, searchParams }: Props) {
   const mod = await db().mod.findUniqueOrThrow({
     where: { id: editable.id },
     include: {
+      category: { select: { slug: true } },
       brands: { select: { brandId: true } },
       operators: { select: { operatorId: true } },
       images: { where: { kind: "SCREENSHOT" }, orderBy: { sortOrder: "asc" }, select: { id: true, isPrimary: true } },
@@ -77,13 +81,18 @@ export default async function WizardPage({ params, searchParams }: Props) {
       />
     );
   } else if (step === "popis") {
+    const facets = categoryFacets(mod.category.slug);
     body = (
       <DetailsForm
         t={t}
+        locale={locale}
         modId={mod.id}
         brands={reference.brands}
         operators={reference.operators}
+        fields={await getCategoryFields(mod.categoryId)}
+        facets={{ brand: facets.includes("brand"), operator: facets.includes("operator") }}
         initial={{
+          attributes: readAttributes(mod.attributes),
           description: mod.description,
           vehicleModel: mod.vehicleModel ?? "",
           tags: mod.tags.join(", "),
@@ -190,6 +199,7 @@ export default async function WizardPage({ params, searchParams }: Props) {
     const issues = working ? await checkVersionReadiness(mod.id, working.id) : [];
     const checks = [
       { label: t.wizard.checkSummary, ok: !issues.includes("SUMMARY_LENGTH") },
+      { label: t.wizard.checkParameters, ok: !issues.includes("ATTRIBUTES_MISSING") },
       { label: t.wizard.checkMain, ok: !issues.includes("NO_MAIN_FILE") },
       { label: t.wizard.checkScreenshot, ok: !issues.includes("NO_SCREENSHOT") },
       { label: t.wizard.checkScan, ok: !issues.includes("FILE_REJECTED") },

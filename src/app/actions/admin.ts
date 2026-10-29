@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { CATEGORY_ICONS } from "@/lib/category-icons";
+import { FIELD_KEY_PATTERN, FIELD_TYPES, FILTERABLE_TYPES, parseOptionLines, type FieldOption } from "@/lib/category-fields";
 import { canAssignRole, canBan, canManageOwned, type AppRole, type Permission } from "@/lib/rbac";
 import { safeRedirectPath } from "@/lib/validation/auth";
 import { field } from "@/server/action-guard";
@@ -233,6 +234,73 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/", "layout");
   back(formData, "/admin/kategorie", { ok: true });
+}
+
+// ───────────────────────────── Parametre kategórií ─────────────────────────────
+
+const fieldSchema = z.object({
+  labelSk: z.string().trim().min(1).max(60),
+  labelCs: z.string().trim().min(1).max(60),
+  hintSk: z.string().trim().max(160),
+  hintCs: z.string().trim().max(160),
+  unit: z.string().trim().max(12),
+  sortOrder: z.coerce.number().int().min(0).max(999),
+});
+
+/** Vytvorenie alebo úprava vlastného poľa kategórie. Kľúč a typ sa po vytvorení nemenia (hodnoty pri modoch). */
+export async function saveCategoryFieldAction(formData: FormData): Promise<void> {
+  const actor = await guard("category:manage");
+  const categoryId = field(formData, "categoryId") ?? "";
+  const fieldId = field(formData, "fieldId");
+  const backTo = `/admin/kategorie/${categoryId}`;
+  const category = id.safeParse(categoryId).success ? await db().category.findUnique({ where: { id: categoryId }, select: { id: true } }) : null;
+  if (!category) back(formData, "/admin/kategorie", { ok: false, error: "GENERIC" });
+
+  const existing = fieldId && id.safeParse(fieldId).success
+    ? await db().categoryField.findFirst({ where: { id: fieldId, categoryId }, select: { id: true, key: true, type: true } })
+    : null;
+  if (fieldId && !existing) back(formData, backTo, { ok: false, error: "GENERIC" });
+
+  const parsed = fieldSchema.safeParse({
+    labelSk: field(formData, "labelSk") ?? "",
+    labelCs: field(formData, "labelCs") ?? "",
+    hintSk: field(formData, "hintSk") ?? "",
+    hintCs: field(formData, "hintCs") ?? "",
+    unit: field(formData, "unit") ?? "",
+    sortOrder: field(formData, "sortOrder") ?? "0",
+  });
+  if (!parsed.success) back(formData, backTo, { ok: false, error: "GENERIC" });
+
+  const typeRaw = field(formData, "type");
+  const type = existing?.type ?? FIELD_TYPES.find((x) => x === typeRaw);
+  if (!type) back(formData, backTo, { ok: false, error: "GENERIC" });
+  const key = existing?.key ?? (field(formData, "key") ?? "").trim();
+  if (!FIELD_KEY_PATTERN.test(key)) back(formData, backTo, { ok: false, error: "FIELD_KEY_INVALID" });
+
+  let options: FieldOption[] = [];
+  if (type === "SELECT" || type === "MULTISELECT") {
+    const result = parseOptionLines(field(formData, "options") ?? "");
+    if ("error" in result || result.options.length === 0) back(formData, backTo, { ok: false, error: "OPTIONS_INVALID" });
+    options = result.options;
+  }
+
+  const data = {
+    ...parsed.data,
+    options,
+    required: type !== "BOOLEAN" && formData.get("required") === "on",
+    filterable: FILTERABLE_TYPES.includes(type) && formData.get("filterable") === "on",
+    isActive: formData.get("isActive") === "on",
+  };
+  if (existing) {
+    await db().categoryField.update({ where: { id: existing.id }, data });
+  } else {
+    const clash = await db().categoryField.findUnique({ where: { categoryId_key: { categoryId, key } }, select: { id: true } });
+    if (clash) back(formData, backTo, { ok: false, error: "FIELD_KEY_TAKEN" });
+    await db().categoryField.create({ data: { ...data, categoryId, key, type } });
+  }
+  await audit({ action: "category.updated", actorId: actor.id, targetType: "category", targetId: categoryId, metadata: { field: key, type } });
+  revalidatePath("/", "layout");
+  back(formData, backTo, { ok: true });
 }
 
 // ───────────────────────────── Nastavenia ─────────────────────────────

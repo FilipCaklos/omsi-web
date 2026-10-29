@@ -11,6 +11,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getDictionary } from "@/i18n/server";
 import { formatNumber, plural } from "@/lib/format";
+import { FILTERABLE_TYPES, filterParamName, localizedLabel, optionLabel, parseAttributeFilters } from "@/lib/category-fields";
+import { getCategoryFields } from "@/server/mods/category-fields";
 import { categoryFacets } from "@/server/mods/reference-data";
 import {
   SEARCH_PAGE_SIZE,
@@ -108,6 +110,15 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const brand = facets.brands.find((b) => b.slug === params.znacka) ?? null;
   const operator = facets.operators.find((o) => o.slug === params.dopravca) ?? null;
   const shownFacets = categoryFacets(params.kategoria);
+  // Filtre podľa parametrov kategórie (napr. krajina mapy, dĺžka autobusu)
+  const attributeFields = category ? (await getCategoryFields(category.id)).filter((f) => f.filterable && FILTERABLE_TYPES.includes(f.type)) : [];
+  const rawParams = await searchParams;
+  const attributeFilters = parseAttributeFilters(attributeFields, rawParams);
+  const attributeParams = attributeFields.flatMap((f) => {
+    const value = attributeFilters[f.key];
+    if (value === undefined) return [];
+    return [[filterParamName(f.key), value === true ? "1" : Array.isArray(value) ? (value[0] ?? "") : String(value)] as const];
+  });
 
   const { items, total } = await searchMods(locale, {
     query: params.q,
@@ -116,6 +127,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     brandId: brand?.id ?? null,
     operatorId: operator?.id ?? null,
     without4gb: params.bez4gb === "1",
+    attributes: attributeFilters,
     sort: (params.zoradit as SortOption | undefined) ?? null,
     page: params.strana,
   });
@@ -127,6 +139,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
       const value = params[key];
       if (value) qs.set(key, value);
     }
+    for (const [key, value] of attributeParams) qs.set(key, value);
     if (page > 1) qs.set("strana", String(page));
     const s = qs.toString();
     return s ? `/mody?${s}` : "/mody";
@@ -138,7 +151,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const resetHref = resetQs.size > 0 ? `/mody?${resetQs.toString()}` : "/mody";
 
   const heading = category ? (locale === "cs" ? category.nameCs : category.nameSk) : t.search.title;
-  const hasFilters = Boolean(params.podkategoria || params.znacka || params.dopravca || params.bez4gb || params.zoradit);
+  const hasFilters = Boolean(params.podkategoria || params.znacka || params.dopravca || params.bez4gb || params.zoradit || attributeParams.length > 0);
   const sortLabels: Record<SortOption, string> = {
     najnovsie: t.catalog.sortNewest,
     aktualizovane: t.catalog.sortUpdated,
@@ -168,6 +181,23 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
             )}
             {shownFacets.includes("operator") && (
               <FilterSelect name="dopravca" label={t.catalog.operator} value={params.dopravca} options={facets.operators} anyLabel={t.catalog.any} />
+            )}
+            {attributeFields.map((field) =>
+              field.type === "BOOLEAN" ? (
+                <label key={field.key} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name={filterParamName(field.key)} value="1" defaultChecked={attributeFilters[field.key] === true} className="size-4 accent-[var(--amber)]" />
+                  {localizedLabel(field, locale)}
+                </label>
+              ) : (
+                <FilterSelect
+                  key={field.key}
+                  name={filterParamName(field.key)}
+                  label={localizedLabel(field, locale)}
+                  value={attributeParams.find(([name]) => name === filterParamName(field.key))?.[1]}
+                  options={field.options.map((o) => ({ slug: o.value, name: optionLabel(o, locale) }))}
+                  anyLabel={t.catalog.any}
+                />
+              ),
             )}
             <label className="block space-y-1">
               <span className="text-xs font-medium text-muted">{t.catalog.sort}</span>

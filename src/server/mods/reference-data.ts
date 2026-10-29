@@ -138,6 +138,143 @@ export const OPERATORS: { slug: string; name: string; city: string | null; count
   { slug: "fiktivne", name: "Fiktívne / Ostatné", city: null, country: "OTHER" },
 ];
 
+type DefaultField = {
+  key: string;
+  sk: string;
+  cs: string;
+  hintSk?: string;
+  hintCs?: string;
+  type: "TEXT" | "NUMBER" | "SELECT" | "MULTISELECT" | "BOOLEAN";
+  options?: { value: string; sk: string; cs: string }[];
+  unit?: string;
+  required?: boolean;
+  filterable?: boolean;
+};
+
+const FLOOR_OPTIONS = [
+  { value: "nizkopodlazny", sk: "Nízkopodlažný", cs: "Nízkopodlažní" },
+  { value: "low-entry", sk: "Low-entry", cs: "Low-entry" },
+  { value: "vysokopodlazny", sk: "Vysokopodlažný", cs: "Vysokopodlažní" },
+];
+
+/**
+ * Predvolené vlastné polia kategórií (parametre modu). Seed ich iba doplní, ak chýbajú –
+ * úpravy administrátora v /admin/kategorie ostávajú zachované.
+ */
+export const CATEGORY_FIELDS: Record<string, DefaultField[]> = {
+  mapy: [
+    { key: "mesto", sk: "Mesto / oblasť", cs: "Město / oblast", hintSk: "Napr. Bratislava, Pezinok – Modra, Žilinský kraj", hintCs: "Např. Brno, Ostrava – Havířov, Vysočina", type: "TEXT", required: true },
+    {
+      key: "krajina",
+      sk: "Krajina",
+      cs: "Země",
+      type: "SELECT",
+      required: true,
+      filterable: true,
+      options: [
+        { value: "sk", sk: "Slovensko", cs: "Slovensko" },
+        { value: "cz", sk: "Česko", cs: "Česko" },
+        { value: "ine", sk: "Iná krajina", cs: "Jiná země" },
+      ],
+    },
+    { key: "linky", sk: "Počet liniek", cs: "Počet linek", type: "NUMBER" },
+    { key: "obdobie", sk: "Obdobie", cs: "Období", hintSk: "Napr. 2008–2012", hintCs: "Např. 2008–2012", type: "TEXT" },
+    { key: "ai_premavka", sk: "AI premávka (autá, autobusy)", cs: "AI provoz (auta, autobusy)", type: "BOOLEAN", filterable: true },
+    { key: "hof", sk: "Obsahuje HOF súbor", cs: "Obsahuje HOF soubor", type: "BOOLEAN", filterable: true },
+  ],
+  autobusy: [
+    {
+      key: "dlzka",
+      sk: "Dĺžka",
+      cs: "Délka",
+      type: "SELECT",
+      filterable: true,
+      options: [
+        { value: "midi", sk: "Mini / midi (do 10 m)", cs: "Mini / midi (do 10 m)" },
+        { value: "solo", sk: "Sólo (12 m)", cs: "Sólo (12 m)" },
+        { value: "trojnapravovy", sk: "Trojnápravový (13–15 m)", cs: "Třínápravový (13–15 m)" },
+        { value: "klbovy", sk: "Kĺbový (18 m)", cs: "Kloubový (18 m)" },
+      ],
+    },
+    { key: "podlaha", sk: "Podlaha", cs: "Podlaha", type: "SELECT", filterable: true, options: FLOOR_OPTIONS },
+    {
+      key: "pohon",
+      sk: "Pohon",
+      cs: "Pohon",
+      type: "SELECT",
+      filterable: true,
+      options: [
+        { value: "nafta", sk: "Nafta", cs: "Nafta" },
+        { value: "cng", sk: "CNG", cs: "CNG" },
+        { value: "elektro", sk: "Elektrobus", cs: "Elektrobus" },
+        { value: "hybrid", sk: "Hybrid", cs: "Hybrid" },
+      ],
+    },
+    {
+      key: "prevodovka",
+      sk: "Prevodovka",
+      cs: "Převodovka",
+      type: "SELECT",
+      options: [
+        { value: "automat", sk: "Automatická", cs: "Automatická" },
+        { value: "manual", sk: "Manuálna", cs: "Manuální" },
+      ],
+    },
+    { key: "roky_vyroby", sk: "Roky výroby", cs: "Roky výroby", hintSk: "Napr. 1990–2002", hintCs: "Např. 1990–2002", type: "TEXT" },
+    { key: "repainty", sk: "Obsahuje repainty", cs: "Obsahuje repainty", type: "BOOLEAN", filterable: true },
+  ],
+  "trolejbusy-elektricky": [
+    { key: "podlaha", sk: "Podlaha", cs: "Podlaha", type: "SELECT", filterable: true, options: FLOOR_OPTIONS },
+    { key: "clanky", sk: "Počet článkov", cs: "Počet článků", type: "NUMBER" },
+    { key: "roky_vyroby", sk: "Roky výroby", cs: "Roky výroby", hintSk: "Napr. 1990–2002", hintCs: "Např. 1990–2002", type: "TEXT" },
+  ],
+  repainty: [
+    { key: "pre_vozidlo", sk: "Pre vozidlo (mod)", cs: "Pro vozidlo (mod)", hintSk: "Názov modu, pre ktorý je repaint, napr. Karosa B 732 od XY", hintCs: "Název modu, pro který je repaint, např. Karosa B 732 od XY", type: "TEXT", required: true },
+    { key: "pocet", sk: "Počet náterov v balíku", cs: "Počet nátěrů v balíku", type: "NUMBER" },
+    { key: "obdobie", sk: "Obdobie", cs: "Období", hintSk: "Napr. 1995–2005", hintCs: "Např. 1995–2005", type: "TEXT" },
+    { key: "fiktivny", sk: "Fiktívny náter", cs: "Fiktivní nátěr", type: "BOOLEAN", filterable: true },
+  ],
+  "hof-hlasenia": [
+    { key: "pre_mapu", sk: "Pre mapu", cs: "Pro mapu", hintSk: "Názov mapy, pre ktorú je HOF alebo hlásenie", hintCs: "Název mapy, pro kterou je HOF nebo hlášení", type: "TEXT", required: true },
+    {
+      key: "jazyk",
+      sk: "Jazyk",
+      cs: "Jazyk",
+      type: "SELECT",
+      filterable: true,
+      options: [
+        { value: "sk", sk: "Slovenčina", cs: "Slovenština" },
+        { value: "cs", sk: "Čeština", cs: "Čeština" },
+        { value: "ine", sk: "Iný", cs: "Jiný" },
+      ],
+    },
+    { key: "linky", sk: "Počet liniek", cs: "Počet linek", type: "NUMBER" },
+  ],
+  "objekty-splines": [
+    {
+      key: "styl",
+      sk: "Štýl",
+      cs: "Styl",
+      type: "SELECT",
+      filterable: true,
+      options: [
+        { value: "sk", sk: "Slovenský", cs: "Slovenský" },
+        { value: "cz", sk: "Český", cs: "Český" },
+        { value: "univerzalny", sk: "Univerzálny", cs: "Univerzální" },
+      ],
+    },
+    { key: "pocet", sk: "Počet objektov", cs: "Počet objektů", type: "NUMBER" },
+  ],
+  "skripty-zvuky": [
+    { key: "pre_vozidlo", sk: "Pre vozidlo", cs: "Pro vozidlo", hintSk: "Nechaj prázdne, ak úprava funguje pre všetky vozidlá", hintCs: "Nech prázdné, pokud úprava funguje pro všechna vozidla", type: "TEXT" },
+    { key: "prepisuje", sk: "Prepisuje pôvodné súbory vozidla", cs: "Přepisuje původní soubory vozidla", type: "BOOLEAN" },
+  ],
+  nastroje: [
+    { key: "verzia", sk: "Verzia programu", cs: "Verze programu", type: "TEXT" },
+    { key: "open_source", sk: "Otvorený zdrojový kód", cs: "Otevřený zdrojový kód", type: "BOOLEAN", filterable: true },
+  ],
+};
+
 /** Oficiálne platené DLC na Steame. Odkaz vedie na vyhľadávanie v obchode (ID sa menia s vydaniami). */
 export const STEAM_DLCS: { slug: string; name: string }[] = [
   { slug: "hamburg", name: "OMSI 2 Add-on Hamburg Tag & Nacht" },
@@ -153,7 +290,7 @@ export function steamSearchUrl(name: string): string {
   return `https://store.steampowered.com/search/?term=${encodeURIComponent(name)}`;
 }
 
-type Db = Pick<PrismaClient, "category" | "subcategory" | "vehicleBrand" | "operator" | "steamDlc">;
+type Db = Pick<PrismaClient, "category" | "subcategory" | "categoryField" | "vehicleBrand" | "operator" | "steamDlc">;
 
 /** Idempotentné doplnenie číselníkov (existujúce záznamy aktualizuje, nič nemaže). */
 export async function ensureReferenceData(client: Db): Promise<void> {
@@ -175,6 +312,26 @@ export async function ensureReferenceData(client: Db): Promise<void> {
       await client.subcategory.upsert({
         where: { categoryId_slug: { categoryId: row.id, slug: sub.slug } },
         create: { categoryId: row.id, slug: sub.slug, nameSk: sub.sk, nameCs: sub.cs, sortOrder: subIndex },
+        update: {},
+      });
+    }
+    for (const [fieldIndex, field] of (CATEGORY_FIELDS[category.slug] ?? []).entries()) {
+      await client.categoryField.upsert({
+        where: { categoryId_key: { categoryId: row.id, key: field.key } },
+        create: {
+          categoryId: row.id,
+          key: field.key,
+          labelSk: field.sk,
+          labelCs: field.cs,
+          hintSk: field.hintSk ?? "",
+          hintCs: field.hintCs ?? "",
+          type: field.type,
+          options: field.options ?? [],
+          unit: field.unit ?? "",
+          required: field.required ?? false,
+          filterable: field.filterable ?? false,
+          sortOrder: fieldIndex,
+        },
         update: {},
       });
     }

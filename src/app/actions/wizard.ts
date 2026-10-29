@@ -12,6 +12,9 @@ import { MARKDOWN_MAX_LENGTH, parseYoutubeId, renderMarkdown } from "@/server/ma
 import { refreshSearchExtra, uniqueModSlug } from "@/server/mods/helpers";
 import { submitVersion, type SubmitIssue } from "@/server/mods/publish";
 import { VERSION_PATTERN, getWorkingVersion, loadEditableMod } from "@/server/mods/wizard";
+import { getCategoryFields } from "@/server/mods/category-fields";
+import { categoryFacets } from "@/server/mods/reference-data";
+import { fieldInputName, parseAttributeForm } from "@/lib/category-fields";
 import { AccessDeniedError, requireUser, type CurrentUser } from "@/server/session";
 import { storage } from "@/server/storage";
 import { createModFileFromUpload } from "@/server/uploads/service";
@@ -152,6 +155,26 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
   const mod = await loadEditableMod(who.user, field(formData, "modId") ?? "");
   if (!mod) return failure(attempt, "MOD_NOT_FOUND");
 
+  const category = await db().mod.findUniqueOrThrow({ where: { id: mod.id }, select: { categoryId: true, category: { select: { slug: true } } } });
+  const facets = categoryFacets(category.category.slug);
+  const fields = await getCategoryFields(category.categoryId);
+  const strings = (name: string) => formData.getAll(name).filter((v): v is string => typeof v === "string");
+  const attributes = parseAttributeForm(fields, { get: (name) => field(formData, name), getAll: strings });
+  if (Object.keys(attributes.errors).length > 0) {
+    // Odoslané hodnoty vrátime, aby autor po chybe nemusel všetko vypĺňať znova
+    const values: Record<string, string> = {
+      vehicleModel: field(formData, "vehicleModel") ?? "",
+      tags: field(formData, "tags") ?? "",
+      youtube: field(formData, "youtube") ?? "",
+      requires4gb: formData.get("requires4gb") === "on" ? "on" : "",
+      brandIds: strings("brandIds").join(","),
+      operatorIds: strings("operatorIds").join(","),
+    };
+    for (const f of fields) values[fieldInputName(f.key)] = strings(fieldInputName(f.key)).join(",");
+    const fieldErrors = Object.fromEntries(Object.entries(attributes.errors).map(([key, code]) => [fieldInputName(key), code]));
+    return failure(attempt, "GENERIC", { fieldErrors, values });
+  }
+
   const tags = (field(formData, "tags") ?? "")
     .split(",")
     .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
@@ -160,8 +183,9 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
     description: field(formData, "description") ?? "",
     vehicleModel: field(formData, "vehicleModel") ?? "",
     tags: [...new Set(tags)],
-    brandIds: formData.getAll("brandIds").filter((v): v is string => typeof v === "string"),
-    operatorIds: formData.getAll("operatorIds").filter((v): v is string => typeof v === "string"),
+    // Značky a dopravcovia iba pri kategóriách, ktorých sa týkajú (mapa nemá model autobusu)
+    brandIds: facets.includes("brand") ? strings("brandIds") : [],
+    operatorIds: facets.includes("operator") ? strings("operatorIds") : [],
     youtube: field(formData, "youtube") ?? "",
     requires4gb: formData.get("requires4gb") === "on",
   });
@@ -185,7 +209,8 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
       data: {
         description: parsed.data.description,
         descriptionHtml: renderMarkdown(parsed.data.description),
-        vehicleModel: parsed.data.vehicleModel || null,
+        vehicleModel: facets.includes("brand") ? parsed.data.vehicleModel || null : null,
+        attributes: attributes.values,
         tags: parsed.data.tags,
         youtubeVideoId: youtubeId,
         requires4GbPatch: parsed.data.requires4gb,

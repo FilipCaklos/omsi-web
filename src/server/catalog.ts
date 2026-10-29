@@ -1,5 +1,6 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
+import type { Attributes } from "@/lib/category-fields";
 import { db } from "@/lib/db";
 import type { AppLocale } from "@/i18n/config";
 
@@ -330,6 +331,8 @@ export type SearchFilters = {
   brandId: string | null;
   operatorId: string | null;
   without4gb: boolean;
+  /** Filtre podľa parametrov kategórie (z parseAttributeFilters) – JSONB obsahovanie */
+  attributes?: Attributes;
   sort: SortOption | null;
   page: number;
 };
@@ -357,6 +360,10 @@ export async function searchMods(locale: AppLocale, filters: SearchFilters): Pro
     );
   }
   if (filters.without4gb) conditions.push(Prisma.sql`m."requires4GbPatch" = false`);
+  for (const [key, value] of Object.entries(filters.attributes ?? {})) {
+    // @> využije GIN index (jsonb_path_ops); pri MULTISELECT [hodnota] znamená „obsahuje túto možnosť“
+    conditions.push(Prisma.sql`m."attributes" @> ${JSON.stringify({ [key]: value })}::jsonb`);
+  }
 
   const terms = query.split(/\s+/).filter((t) => t.length > 0).slice(0, 6);
   for (const term of terms) {

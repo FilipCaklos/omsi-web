@@ -3,9 +3,11 @@ import { db } from "@/lib/db";
 import { can, type AppRole } from "@/lib/rbac";
 import { audit } from "@/server/audit";
 import { notifyFollowers } from "@/server/notifications";
+import { missingRequired, readAttributes } from "@/lib/category-fields";
+import { getCategoryFields } from "./category-fields";
 import { refreshSearchExtra } from "./helpers";
 
-export type SubmitIssue = "NO_MAIN_FILE" | "NO_SCREENSHOT" | "FILE_REJECTED" | "SUMMARY_LENGTH" | "NOT_EDITABLE" | "MOD_NOT_FOUND";
+export type SubmitIssue = "NO_MAIN_FILE" | "NO_SCREENSHOT" | "FILE_REJECTED" | "SUMMARY_LENGTH" | "ATTRIBUTES_MISSING" | "NOT_EDITABLE" | "MOD_NOT_FOUND";
 
 /** Kontroly pred odoslaním verzie (rovnaké pre UI checklist aj server). */
 export async function checkVersionReadiness(modId: string, versionId: string): Promise<SubmitIssue[]> {
@@ -14,6 +16,8 @@ export async function checkVersionReadiness(modId: string, versionId: string): P
     select: {
       status: true,
       summary: true,
+      categoryId: true,
+      attributes: true,
       currentVersionId: true,
       _count: { select: { images: { where: { kind: "SCREENSHOT" } } } },
     },
@@ -33,6 +37,7 @@ export async function checkVersionReadiness(modId: string, versionId: string): P
   if (version.files.some((f) => f.scanStatus === "REJECTED")) issues.push("FILE_REJECTED");
   if (mod._count.images === 0) issues.push("NO_SCREENSHOT");
   if (mod.summary.trim().length < 20) issues.push("SUMMARY_LENGTH");
+  if (missingRequired(await getCategoryFields(mod.categoryId), readAttributes(mod.attributes)).length > 0) issues.push("ATTRIBUTES_MISSING");
   return issues;
 }
 

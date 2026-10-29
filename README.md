@@ -182,6 +182,10 @@ Limit z `.env` je pritom vždy horná hranica.
 ### Katalóg a komunita
 - Vyhľadávanie funguje bez ohľadu na diakritiku a veľkosť písmen (`omsi_normalize()` nad GIN trigram indexom).
   Filtruje sa podľa kategórie, podkategórie, značky, dopravcu a 4GB Patchu, s piatimi spôsobmi zoradenia a okamžitými návrhmi.
+- **Parametre kategórií:** každá kategória má vlastné polia (mapa: mesto, krajina, počet liniek, AI premávka;
+  autobus: dĺžka, podlaha, pohon…). Autor ich vyplní v kroku Popis, zobrazia sa pri mode, sú súčasťou vyhľadávania
+  a vybrané slúžia ako filtre v katalógu. Administrátor ich spravuje v `/admin/kategorie` → Parametre; predvolené
+  polia sú v [src/server/mods/reference-data.ts](src/server/mods/reference-data.ts) a seed ich iba doplní, úpravy neprepíše.
 - Recenzie (1 na používateľa, nie na vlastný mod) sú oddelené od hlásení chýb, ktoré majú pole na `logfile.txt`.
 - Upload Wizard má 6 krokov a koncept sa ukladá na server. „Moje modifikácie“ umožňujú vydať novú verziu.
 - Pripravované vydania majú tri režimy (presný dátum, obdobie, TBA), stav vývoja po častiach a devlogy s diskusiou.

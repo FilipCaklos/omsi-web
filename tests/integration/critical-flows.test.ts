@@ -261,3 +261,35 @@ describe("naplánované vydanie", () => {
     expect(mod.status).toBe("PUBLISHED");
   });
 });
+
+describe("parametre kategórie", () => {
+  it("predvolené polia sa doplnia, filter katalógu a kontrola povinných polí fungujú nad DB", async () => {
+    const { ensureReferenceData } = await import("@/server/mods/reference-data");
+    const { searchMods } = await import("@/server/catalog");
+    const { checkVersionReadiness } = await import("@/server/mods/publish");
+    await ensureReferenceData(app.db());
+    const fields = await app.db().categoryField.findMany({ where: { categoryId }, select: { key: true } });
+    expect(fields.map((f) => f.key)).toEqual(expect.arrayContaining(["mesto", "krajina", "ai_premavka"]));
+
+    // Úprava administrátora (vypnutie poľa) sa ďalším seedom neprepíše
+    await app.db().categoryField.update({ where: { categoryId_key: { categoryId, key: "hof" } }, data: { isActive: false, labelSk: "Vlastný názov" } });
+    await ensureReferenceData(app.db());
+    expect(await app.db().categoryField.findUniqueOrThrow({ where: { categoryId_key: { categoryId, key: "hof" } } })).toMatchObject({ isActive: false, labelSk: "Vlastný názov" });
+
+    const sk = await publishedModWithFile("mapa-slovensko", await zip([["Maps/sk/global.cfg", "x"]]));
+    const cz = await publishedModWithFile("mapa-cesko", await zip([["Maps/cz/global.cfg", "x"]]));
+    await app.db().mod.update({ where: { id: sk.mod.id }, data: { attributes: { mesto: "Žilina", krajina: "sk", ai_premavka: true } } });
+    await app.db().mod.update({ where: { id: cz.mod.id }, data: { attributes: { mesto: "Brno", krajina: "cz" } } });
+
+    const filters = { query: "", categoryId, subcategoryId: null, brandId: null, operatorId: null, without4gb: false, sort: null, page: 1 };
+    const czech = await searchMods("sk", { ...filters, attributes: { krajina: "cz" } });
+    expect(czech.items.map((m) => m.slug)).toEqual(["mapa-cesko"]);
+    const withAi = await searchMods("sk", { ...filters, attributes: { krajina: "sk", ai_premavka: true } });
+    expect(withAi.items.map((m) => m.slug)).toEqual(["mapa-slovensko"]);
+
+    // Mapa bez povinného mesta neprejde kontrolou pred odoslaním novej verzie
+    const draft = await app.db().modVersion.create({ data: { modId: cz.mod.id, version: "1.1.0", status: "DRAFT" } });
+    await app.db().mod.update({ where: { id: cz.mod.id }, data: { attributes: { krajina: "cz" } } });
+    expect(await checkVersionReadiness(cz.mod.id, draft.id)).toContain("ATTRIBUTES_MISSING");
+  });
+});
