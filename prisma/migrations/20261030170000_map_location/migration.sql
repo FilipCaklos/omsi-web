@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Mod" ADD COLUMN     "mapLat" DOUBLE PRECISION,
+ADD COLUMN     "mapLng" DOUBLE PRECISION;
+

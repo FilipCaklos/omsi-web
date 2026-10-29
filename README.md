@@ -144,6 +144,8 @@ migráciami vrátane `unaccent` a `pg_trgm`), Redis nahrádza `ioredis-mock` a v
 | `AUTH_SECRET`, `DOWNLOAD_TOKEN_SECRET`, `IP_HASH_SECRET` | tajomstvá (min. 32 znakov) |
 | `CLIENT_IP_HEADER` | hlavička s IP od reverznej proxy pre `npm run start` (v Dockeri ju nastavuje brána: `x-real-ip`) |
 | `TRUSTED_PROXIES` | Docker brána: adresy proxy pred ňou, napr. `private_ranges` (predvolene nikto) |
+| `VIRUSTOTAL_API_KEY` | antivírusová kontrola súborov cez VirusTotal (prázdne = vypnuté) |
+| `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION` | overenie vlastníctva webu pre vyhľadávače |
 | `LEGAL_OPERATOR_NAME`, `CONTACT_EMAIL` | prevádzkovateľ a kontakt na právnych stránkach |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | voliteľné prihlásenie cez Discord (callback `${APP_URL}/api/auth/callback/discord`) |
 | `SMTP_*`, `MAIL_FROM` | odosielanie emailov (lokálne Mailpit) |
@@ -180,6 +182,14 @@ Limit z `.env` je pritom vždy horná hranica.
   prilepený škodlivý kód (polyglot) zanikne. SVG a HTML sú zakázané.
 
 ### Katalóg a komunita
+- **Mapa máp** (`/mapa`): OMSI mapy na mape SK/CZ (Leaflet + OpenStreetMap); polohu autor vyberie kliknutím v kroku Popis.
+- **Fotky z hry od komunity** so schvaľovaním moderátorom, **sledovanie autora**, **Moje stiahnuté** s upozornením
+  na novú verziu, **štatistiky stiahnutí** pre autorov (`/ucet/statistiky`), odkazy a podpora v profile autora.
+- **Discord oznámenia** (webhook v Administrácia → Nastavenia) a **RSS** na `/feed.xml`.
+- **VirusTotal**: zverejnené súbory sa kontrolujú antivírusmi (`VIRUSTOTAL_API_KEY`); 2+ detekcie = súbor ide na kontrolu.
+- **SEO**: schema.org (SoftwareApplication, BreadcrumbList, WebSite, ProfilePage), image sitemap, overenie pre
+  Google Search Console (`GOOGLE_SITE_VERIFICATION`).
+- **Vlastné údaje**: export (JSON) a zmazanie účtu priamo v Môj účet.
 - Vyhľadávanie funguje bez ohľadu na diakritiku a veľkosť písmen (`omsi_normalize()` nad GIN trigram indexom).
   Filtruje sa podľa kategórie, podkategórie, značky, dopravcu a 4GB Patchu, s piatimi spôsobmi zoradenia a okamžitými návrhmi.
 - **Parametre kategórií:** každá kategória má vlastné polia (mapa: mesto, krajina, počet liniek, AI premávka;

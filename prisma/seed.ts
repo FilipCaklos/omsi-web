@@ -205,6 +205,7 @@ type ModInput = {
   /** Parametre kategórie (kľúče z CATEGORY_FIELDS) */
   attributes?: Record<string, string | number | boolean | string[]>;
   openOmsi?: "UNTESTED" | "WORKS" | "PARTIAL" | "NOT_WORKING" | "EXCLUSIVE";
+  location?: { lat: number; lng: number };
   tags?: string[];
   brands?: string[];
   operators?: string[];
@@ -228,6 +229,8 @@ async function createMod(input: ModInput) {
       vehicleModel: input.vehicleModel ?? null,
       attributes: input.attributes ?? {},
       openOmsi: input.openOmsi ?? "UNTESTED",
+      mapLat: input.location?.lat ?? null,
+      mapLng: input.location?.lng ?? null,
       tags: input.tags ?? [],
       requires4GbPatch: input.requires4gb ?? false,
       status: input.status ?? "DRAFT",
@@ -345,6 +348,7 @@ async function main() {
     subcategoryId: ref.sub("mapy", "realne-cz-sk"),
     attributes: { mesto: "Pezinok – Modra", krajina: "sk", linky: 6, obdobie: "2010–2015", ai_premavka: true, hof: true },
     openOmsi: "WORKS",
+    location: { lat: 48.287, lng: 17.267 },
     authorId: author,
     tags: ["sad", "buse", "primestska", "malokarpatsko"],
     operators: [ref.operator("sad")],
@@ -522,6 +526,7 @@ async function main() {
     categoryId: ref.category("mapy"),
     subcategoryId: ref.sub("mapy", "realne-cz-sk"),
     attributes: { mesto: "Žilina", krajina: "sk", linky: 4, ai_premavka: true },
+    location: { lat: 49.236, lng: 18.73 },
     authorId: author,
     operators: [ref.operator("dpmz")],
     status: "PLANNED",

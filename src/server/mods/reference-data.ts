@@ -6,6 +6,9 @@ import type { CategoryIconKey } from "@/lib/category-icons";
  * (volá seed a prvé spustenie); administrátor ich potom spravuje v /admin.
  */
 
+/** Spoločné polia podľa kategórie: značka/model vozidla, dopravca, poloha na mape (Mapa máp) */
+export type Facet = "brand" | "operator" | "location";
+
 type CategoryDef = {
   slug: string;
   sk: string;
@@ -15,12 +18,12 @@ type CategoryDef = {
   descriptionCs: string;
   subcategories: { slug: string; sk: string; cs: string }[];
   /** Ktoré filtre katalóg pri kategórii ponúka */
-  facets: ("brand" | "operator")[];
+  facets: Facet[];
 };
 
 export const CATEGORIES: CategoryDef[] = [
   {
-    slug: "mapy", sk: "Mapy", cs: "Mapy", icon: "map", facets: [],
+    slug: "mapy", sk: "Mapy", cs: "Mapy", icon: "map", facets: ["location"],
     descriptionSk: "Reálne, poloreálne aj fiktívne mapy s linkami, cestovnými poriadkami a AI premávkou.",
     descriptionCs: "Reálné, poloreálné i fiktivní mapy s linkami, jízdními řády a AI provozem.",
     subcategories: [
@@ -360,6 +363,6 @@ export async function ensureReferenceData(client: Db): Promise<void> {
 }
 
 /** Fazety katalógu podľa slug kategórie. */
-export function categoryFacets(slug: string | null | undefined): ("brand" | "operator")[] {
+export function categoryFacets(slug: string | null | undefined): Facet[] {
   return CATEGORIES.find((c) => c.slug === slug)?.facets ?? ["brand", "operator"];
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, CalendarClock, LogIn, Upload } from "lucide-react";
+import { Bell, CalendarClock, LogIn, MapPinned, Upload } from "lucide-react";
 import { getDictionary, getTheme } from "@/i18n/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/server/session";
@@ -46,6 +46,13 @@ export async function SiteHeader({ query = "" }: { query?: string }) {
         />
 
         <nav className="ml-auto flex items-center gap-2" aria-label={t.header.mainNav}>
+          <Link
+            href="/mapa"
+            className="hidden h-9 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2.5 text-sm text-muted hover:bg-raised hover:text-text xl:flex"
+          >
+            <MapPinned size={16} strokeWidth={1.75} aria-hidden />
+            {t.header.mapOfMaps}
+          </Link>
           <Link
             href="/pripravovane"
             className="hidden h-9 items-center gap-1.5 whitespace-nowrap rounded-[5px] px-2.5 text-sm text-muted hover:bg-raised hover:text-text xl:flex"

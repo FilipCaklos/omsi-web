@@ -26,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/`, changeFrequency: "hourly", priority: 1 },
     { url: `${base}/mody`, changeFrequency: "hourly", priority: 0.9 },
     { url: `${base}/pripravovane`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${base}/mapa`, changeFrequency: "weekly", priority: 0.6 },
     ...["/podmienky", "/ochrana-sukromia", "/kontakt"].map((path) => ({ url: `${base}${path}`, changeFrequency: "yearly" as const, priority: 0.2 })),
     ...categories.map((c) => ({ url: `${base}/mody?kategoria=${c.slug}`, lastModified: c.updatedAt, changeFrequency: "daily" as const, priority: 0.8 })),
     ...mods.map((m) => ({

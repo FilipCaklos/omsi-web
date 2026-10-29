@@ -488,6 +488,9 @@ model Mod {
   subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   vehicleModel    String?
   tags            String[]     @default([])
+  /// Poloha OMSI mapy pre „Mapu máp“ (WGS84) – vyberá autor kliknutím v sprievodcovi
+  mapLat          Float?
+  mapLng          Float?
   /// Hodnoty vlastných polí kategórie: { "<key>": string | number | boolean | string[] }
   attributes      Json         @default("{}")
 

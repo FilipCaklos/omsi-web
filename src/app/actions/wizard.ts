@@ -15,6 +15,7 @@ import { VERSION_PATTERN, getWorkingVersion, loadEditableMod } from "@/server/mo
 import { getCategoryFields } from "@/server/mods/category-fields";
 import { categoryFacets } from "@/server/mods/reference-data";
 import { fieldInputName, parseAttributeForm } from "@/lib/category-fields";
+import { parseLocation } from "@/lib/geo";
 import { parseOpenOmsi } from "@/lib/open-omsi";
 import { AccessDeniedError, requireUser, type CurrentUser } from "@/server/session";
 import { storage } from "@/server/storage";
@@ -177,6 +178,9 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
     return failure(attempt, "GENERIC", { fieldErrors, values });
   }
 
+  const location = facets.includes("location") ? parseLocation(field(formData, "mapLat"), field(formData, "mapLng")) : null;
+  if (location === "INVALID") return invalid(attempt, "mapLat", "GENERIC");
+
   const tags = (field(formData, "tags") ?? "")
     .split(",")
     .map((t) => t.trim().toLowerCase().replace(/^#/, ""))
@@ -217,6 +221,8 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
         youtubeVideoId: youtubeId,
         requires4GbPatch: parsed.data.requires4gb,
         openOmsi: parseOpenOmsi(field(formData, "openOmsi")),
+        mapLat: location?.lat ?? null,
+        mapLng: location?.lng ?? null,
       },
     }),
     db().modBrand.deleteMany({ where: { modId: mod.id } }),

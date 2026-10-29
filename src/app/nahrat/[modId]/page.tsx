@@ -90,9 +90,10 @@ export default async function WizardPage({ params, searchParams }: Props) {
         brands={reference.brands}
         operators={reference.operators}
         fields={await getCategoryFields(mod.categoryId)}
-        facets={{ brand: facets.includes("brand"), operator: facets.includes("operator") }}
+        facets={{ brand: facets.includes("brand"), operator: facets.includes("operator"), location: facets.includes("location") }}
         initial={{
           attributes: readAttributes(mod.attributes),
+          location: mod.mapLat !== null && mod.mapLng !== null ? { lat: mod.mapLat, lng: mod.mapLng } : null,
           description: mod.description,
           vehicleModel: mod.vehicleModel ?? "",
           tags: mod.tags.join(", "),

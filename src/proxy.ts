@@ -22,7 +22,8 @@ function buildCsp(nonce: string): string {
     ],
     // React a next/font vkladajú inline štýly (napr. šírka progress barov)
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:"],
+    // Dlaždice OpenStreetMap pre Mapu máp
+    "img-src": ["'self'", "data:", "blob:", "https://tile.openstreetmap.org"],
     "font-src": ["'self'"],
     "connect-src": ["'self'", "https://challenges.cloudflare.com", ...(isDev ? ["ws:", "wss:"] : [])],
     "frame-src": ["https://challenges.cloudflare.com", "https://www.youtube-nocookie.com"],

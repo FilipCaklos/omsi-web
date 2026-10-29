@@ -176,8 +176,16 @@ function Sidebar({ mod, t }: { mod: ModDetail; t: Dictionary }) {
           <ul className="divide-y divide-line">{recommended.map(depItem)}</ul>
         </div>
       )}
-      {(mod.parameters.length > 0 || mod.openOmsi !== "UNTESTED" || mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
+      {(mod.parameters.length > 0 || mod.hasMapLocation || mod.openOmsi !== "UNTESTED" || mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-[5px] border border-line bg-surface p-4 text-sm">
+        {mod.hasMapLocation && (
+          <>
+            <dt className="text-muted">{t.mapOfMaps.title}</dt>
+            <dd>
+              <Link href={`/mapa?mod=${mod.slug}`} className="hover:text-amber">{t.mapOfMaps.showOnMap}</Link>
+            </dd>
+          </>
+        )}
         {mod.openOmsi !== "UNTESTED" && (
           <>
             <dt className="text-muted">

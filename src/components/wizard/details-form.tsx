@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { Eye, Pencil } from "lucide-react";
 import { previewMarkdownAction, saveDetailsAction } from "@/app/actions/wizard";
 import { FormAlert, SubmitButton, TextField } from "@/components/forms/fields";
+import { LocationPicker } from "@/components/map/maps";
 import { AttributeFields } from "@/components/wizard/attribute-fields";
 import type { AppLocale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
@@ -42,9 +43,10 @@ export function DetailsForm({
   /** Vlastné polia kategórie modu */
   fields: FieldDef[];
   /** Ktoré spoločné polia sa kategórie týkajú (značka/model, dopravca) */
-  facets: { brand: boolean; operator: boolean };
+  facets: { brand: boolean; operator: boolean; location: boolean };
   initial: {
     attributes: Attributes;
+    location: { lat: number; lng: number } | null;
     description: string;
     vehicleModel: string;
     tags: string;
@@ -84,6 +86,14 @@ export function DetailsForm({
             errorFor={(key) => err(fieldInputName(key))}
             requiredMark={w.requiredMark}
           />
+        </fieldset>
+      )}
+
+      {facets.location && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">{w.location}</legend>
+          <LocationPicker initial={initial.location} labels={{ hint: w.locationHint, clear: w.locationClear, none: w.locationNone }} />
+          {err("mapLat") && <p className="text-xs text-alert">{err("mapLat")}</p>}
         </fieldset>
       )}
 
