@@ -48,6 +48,8 @@ export const AUDIT_ACTIONS = [
   "review.hidden",
   "comment.hidden",
   "user.deleted",
+  "image.approved",
+  "image.deleted",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

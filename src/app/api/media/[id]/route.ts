@@ -27,6 +27,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       fullKey: true,
       storageDriver: true,
       ownerId: true,
+      kind: true,
+      approvedAt: true,
       mod: { select: { status: true, authorId: true } },
       devlog: { select: { mod: { select: { status: true, authorId: true } } } },
     },
@@ -34,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!image) return notFound();
 
   const parent = image.mod ?? image.devlog?.mod ?? null;
-  const isPublic = parent !== null && PUBLIC_STATUSES.has(parent.status);
+  const isPublic = parent !== null && PUBLIC_STATUSES.has(parent.status) && (image.kind !== "COMMUNITY" || image.approvedAt !== null);
   if (!isPublic) {
     // Koncept a nepriradené obrázky vidí iba vlastník a moderátor
     const user = await getUserForHeaders(request.headers);

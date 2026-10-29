@@ -5,9 +5,11 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { fileExtension, isImageExtension } from "@/lib/upload-policy";
 import { HttpError } from "@/server/http";
-import { canManageOwned } from "@/lib/rbac";
+import { canManageOwned, hasRole } from "@/lib/rbac";
 import type { CurrentUser } from "@/server/session";
 import { newImageKeys, storage } from "@/server/storage";
+
+export const COMMUNITY_LIMIT_PER_MOD = 10;
 
 /** Bezpečnostné limity dekódovania (ochrana proti „pixel bombám“). */
 const MAX_INPUT_PIXELS = 60_000_000;
@@ -76,12 +78,24 @@ export async function storeScreenshot(params: {
   user: CurrentUser;
   input: Buffer;
   filename: string;
-  kind: Extract<ImageKind, "SCREENSHOT" | "DEVLOG">;
+  kind: Extract<ImageKind, "SCREENSHOT" | "DEVLOG" | "COMMUNITY">;
   modId: string | null;
+  caption?: string | null;
 }) {
   if (params.input.length > env().UPLOAD_MAX_IMAGE_BYTES) throw new HttpError(413, "IMAGE_TOO_LARGE");
 
-  if (params.modId) {
+  // Fotka z hry od hráča: k verejnému cudziemu modu, najviac 10 na hráča a mod, zverejní ju moderátor
+  let approvedAt: Date | null = null;
+  if (params.kind === "COMMUNITY") {
+    const mod = params.modId
+      ? await db().mod.findFirst({ where: { id: params.modId, status: { in: ["PUBLISHED", "PLANNED", "SCHEDULED"] } }, select: { authorId: true } })
+      : null;
+    if (!mod || mod.authorId === params.user.id) throw new HttpError(404, "MOD_NOT_FOUND");
+    const mine = await db().mediaImage.count({ where: { modId: params.modId, ownerId: params.user.id, kind: "COMMUNITY" } });
+    if (mine >= COMMUNITY_LIMIT_PER_MOD) throw new HttpError(429, "COMMUNITY_LIMIT");
+    // Overený autor a moderátor nepotrebujú schválenie
+    if (hasRole(params.user.role, "VERIFIED_CREATOR")) approvedAt = new Date();
+  } else if (params.modId) {
     const mod = await db().mod.findUnique({
       where: { id: params.modId },
       select: { author: { select: { id: true, role: true } } },
@@ -112,8 +126,10 @@ export async function storeScreenshot(params: {
       height: processed.height,
       sizeBytes: processed.full.length,
       sortOrder,
-      isPrimary: params.modId !== null && sortOrder === 0,
+      isPrimary: params.kind !== "COMMUNITY" && params.modId !== null && sortOrder === 0,
+      caption: params.caption?.trim().slice(0, 140) || null,
+      approvedAt,
     },
-    select: { id: true, width: true, height: true, sortOrder: true, isPrimary: true },
+    select: { id: true, width: true, height: true, sortOrder: true, isPrimary: true, approvedAt: true },
   });
 }

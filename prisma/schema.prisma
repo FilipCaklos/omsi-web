@@ -155,6 +155,8 @@ enum ImageKind {
   SCREENSHOT
   DEVLOG
   AVATAR
+  /// Fotka z hry od hráča (nie autora) – zverejní sa po schválení moderátorom
+  COMMUNITY
 }
 
 enum OperatorCountry {
@@ -711,10 +713,13 @@ model MediaImage {
   caption       String?
   sortOrder     Int           @default(0)
   isPrimary     Boolean       @default(false)
+  /// Komunitná fotka: kedy ju moderátor schválil (null = čaká)
+  approvedAt    DateTime?
   createdAt     DateTime      @default(now())
 
   @@index([modId, sortOrder])
   @@index([devlogId])
+  @@index([kind, approvedAt])
 }
 
 // ───────────────────────────── Pripravované vydania ─────────────────────────────

@@ -7,7 +7,7 @@ import { getSettings } from "@/server/settings";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** POST /api/uploads/images – multipart: file, kind (SCREENSHOT|DEVLOG), voliteľne modId. */
+/** POST /api/uploads/images – multipart: file, kind (SCREENSHOT|DEVLOG|COMMUNITY), voliteľne modId a caption. */
 export async function POST(request: Request): Promise<Response> {
   try {
     assertSameOrigin(request);
@@ -28,7 +28,8 @@ export async function POST(request: Request): Promise<Response> {
     const file = form?.get("file");
     if (!(file instanceof File)) throw new HttpError(400, "IMAGE_MISSING");
     const kindRaw = form?.get("kind");
-    const kind = kindRaw === "DEVLOG" ? "DEVLOG" : "SCREENSHOT";
+    const kind = kindRaw === "DEVLOG" ? "DEVLOG" : kindRaw === "COMMUNITY" ? "COMMUNITY" : "SCREENSHOT";
+    const captionRaw = form?.get("caption");
     const modIdRaw = form?.get("modId");
     const modId = typeof modIdRaw === "string" && /^[a-z0-9]{10,40}$/.test(modIdRaw) ? modIdRaw : null;
 
@@ -38,6 +39,7 @@ export async function POST(request: Request): Promise<Response> {
       filename: file.name,
       kind,
       modId,
+      caption: typeof captionRaw === "string" ? captionRaw : null,
     });
     return Response.json(
       { ...image, thumbUrl: `/api/media/${image.id}?variant=thumb`, fullUrl: `/api/media/${image.id}?variant=full` },

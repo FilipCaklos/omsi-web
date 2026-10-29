@@ -437,3 +437,27 @@ describe("vlastné údaje: export a zmazanie účtu", () => {
     expect(await app.db().mod.findUniqueOrThrow({ where: { id: other.mod.id } })).toMatchObject({ ratingAvg: 0, ratingCount: 0 });
   });
 });
+
+describe("fotky od komunity", () => {
+  it("hráč pridá fotku k cudziemu modu (čaká na schválenie), autor k vlastnému nie, overený autor bez schvaľovania", async () => {
+    const { storeScreenshot } = await import("@/server/media/images");
+    const sharp = (await import("sharp")).default;
+    const png = await sharp({ create: { width: 1280, height: 720, channels: 3, background: "#3b82f6" } }).png().toBuffer();
+    const created = await publishedModWithFile("komunitne-fotky", await zip([["Maps/k/global.cfg", "x"]]));
+    const player = await app.db().user.create({ data: { name: "Fotograf", email: "foto@test.sk", username: "foto.test", emailVerified: true } });
+    const asUser = (u: { id: string; role: string; username: string }) =>
+      ({ ...u, sessionId: "s", name: u.username, email: `${u.username}@t.sk`, emailVerified: true, image: null, locale: "sk" }) as Parameters<typeof storeScreenshot>[0]["user"];
+
+    const pending = await storeScreenshot({ user: asUser({ id: player.id, role: "USER", username: "foto.test" }), input: png, filename: "a.png", kind: "COMMUNITY", modId: created.mod.id, caption: "Večer na Harmónii" });
+    expect(pending.approvedAt).toBeNull();
+    await expect(
+      storeScreenshot({ user: asUser({ id: authorId, role: "VERIFIED_CREATOR", username: "autor.test" }), input: png, filename: "b.png", kind: "COMMUNITY", modId: created.mod.id }),
+    ).rejects.toMatchObject({ code: "MOD_NOT_FOUND" });
+
+    const other = await publishedModWithFile("cudzia-mapa-foto", await zip([["Maps/c/global.cfg", "x"]]));
+    await app.db().mod.update({ where: { id: other.mod.id }, data: { authorId: player.id } });
+    const trusted = await storeScreenshot({ user: asUser({ id: authorId, role: "VERIFIED_CREATOR", username: "autor.test" }), input: png, filename: "c.png", kind: "COMMUNITY", modId: other.mod.id });
+    expect(trusted.approvedAt).not.toBeNull();
+    expect(await app.db().mediaImage.findUniqueOrThrow({ where: { id: pending.id } })).toMatchObject({ kind: "COMMUNITY", caption: "Večer na Harmónii", isPrimary: false });
+  });
+});

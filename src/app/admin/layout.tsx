@@ -19,15 +19,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await requirePagePermission("moderation:queue", "/admin");
   const { t } = await getDictionary();
   // Počty čakajúcich vecí priamo v navigácii – moderátor hneď vidí, kde je práca
-  const [pendingVersions, pendingPlanned, pendingFiles, openReports] = await Promise.all([
+  const [pendingVersions, pendingPlanned, pendingFiles, openReports, pendingImages] = await Promise.all([
     db().modVersion.count({ where: { status: "PENDING_REVIEW" } }),
     db().mod.count({ where: { status: "PENDING_REVIEW", plannedRelease: { isNot: null }, versions: { none: { status: "PENDING_REVIEW" } } } }),
     db().modFile.count({ where: { scanStatus: "REQUIRES_MOD_INSPECTION", version: { status: { not: "PENDING_REVIEW" } } } }),
     db().report.count({ where: { status: "OPEN" } }),
+    db().mediaImage.count({ where: { kind: "COMMUNITY", approvedAt: null } }),
   ]);
   const items: { href: string; label: string; Icon: typeof Gauge; permission: Permission; count?: number }[] = [
     { href: "/admin", label: t.admin.nav.dashboard, Icon: Gauge, permission: "moderation:queue" },
-    { href: "/admin/fronta", label: t.admin.nav.queue, Icon: ClipboardCheck, permission: "moderation:queue", count: pendingVersions + pendingPlanned + pendingFiles },
+    { href: "/admin/fronta", label: t.admin.nav.queue, Icon: ClipboardCheck, permission: "moderation:queue", count: pendingVersions + pendingPlanned + pendingFiles + pendingImages },
     { href: "/admin/nahlasenia", label: t.admin.nav.reports, Icon: Flag, permission: "report:resolve", count: openReports },
     { href: "/admin/mody", label: t.admin.nav.mods, Icon: Package, permission: "content:hide" },
     { href: "/admin/pouzivatelia", label: t.admin.nav.users, Icon: Users, permission: "user:ban" },

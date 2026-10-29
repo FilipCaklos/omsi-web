@@ -5,13 +5,14 @@ import { Fragment } from "react";
 import {
   Bug,
   CalendarClock,
-  Newspaper,
+  Camera,
   ChevronRight,
   Download,
   ExternalLink,
   Gamepad2,
   History,
   Info,
+  Newspaper,
   Package,
   Pencil,
   Scale,
@@ -19,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { BugReportForm, ReviewForm } from "@/components/mod/community-forms";
+import { CommunityImages } from "@/components/mod/community-images";
 import { DevlogList } from "@/components/mod/devlog-list";
 import { DownloadCenterPanel } from "@/components/mod/download-center";
 import { FollowButton } from "@/components/mod/follow-button";
@@ -32,6 +34,7 @@ import { JsonLd, absoluteUrl, breadcrumbList } from "@/components/seo/json-ld";
 import { getDictionary } from "@/i18n/server";
 import { env } from "@/lib/env";
 import { db } from "@/lib/db";
+import { can } from "@/lib/rbac";
 import { formatDate, formatNumber, plural } from "@/lib/format";
 import { OPEN_OMSI_URL, worksInOpenOmsi } from "@/lib/open-omsi";
 import { getModDetail, type ModDetail } from "@/server/mods/detail";
@@ -305,6 +308,13 @@ export default async function ModPage({ params }: Params) {
     }),
     user ? db().follow.findUnique({ where: { userId_modId: { userId: user.id, modId: mod.id } }, select: { userId: true } }) : null,
   ]);
+  // Fotky z hry od hráčov: schválené všetkým, vlastné neschválené aj autorovi fotky
+  const communityImages = await db().mediaImage.findMany({
+    where: { modId: mod.id, kind: "COMMUNITY", OR: [{ approvedAt: { not: null } }, ...(user ? [{ ownerId: user.id }] : [])] },
+    orderBy: { createdAt: "desc" },
+    take: 60,
+    select: { id: true, width: true, height: true, caption: true, approvedAt: true, ownerId: true, owner: { select: { username: true } } },
+  });
   const isPlanned = mod.status === "PLANNED" || mod.status === "SCHEDULED";
   const canFollow = user?.id !== mod.author.id && (isPlanned || mod.status === "PUBLISHED");
   const followButton = canFollow && (
@@ -448,6 +458,24 @@ export default async function ModPage({ params }: Params) {
                     className="h-full w-full"
                   />
                 </div>
+              </Section>
+            )}
+
+            {(communityImages.length > 0 || (user?.emailVerified && user.id !== mod.author.id)) && (
+              <Section id="komunita" title={t.community.title} Icon={Camera}>
+                <CommunityImages
+                  t={t}
+                  modId={mod.id}
+                  canUpload={user?.emailVerified === true && user.id !== mod.author.id}
+                  images={communityImages.map((image) => ({
+                    id: image.id,
+                    width: image.width,
+                    height: image.height,
+                    caption: image.approvedAt ? image.caption : `${image.caption ? `${image.caption} · ` : ""}${t.community.pendingBadge}`,
+                    owner: image.owner.username,
+                    canDelete: user !== null && (user.id === image.ownerId || user.id === mod.author.id || can(user.role, "content:hide")),
+                  }))}
+                />
               </Section>
             )}
 
