@@ -87,7 +87,7 @@ const sk: Record<LegalDocumentName, LegalDocument> = {
           "podanie sťažnosti na Úrad na ochranu osobných údajov SR (dataprotection.gov.sk), v Česku na Úřad pro ochranu osobních údajů (uoou.gov.cz).",
         ],
         paragraphs: [
-          "Žiadosť pošli na {email} z adresy, ktorú máš pri účte. Vybavíme ju bez zbytočného odkladu, najneskôr do 30 dní.",
+          "Kópiu údajov si stiahneš a účet zmažeš sám v časti Môj účet → Tvoje údaje. Ostatné žiadosti pošli na {email} z adresy, ktorú máš pri účte – vybavíme ich bez zbytočného odkladu, najneskôr do 30 dní.",
         ],
       },
       {
@@ -122,7 +122,7 @@ const sk: Record<LegalDocumentName, LegalDocument> = {
         items: [
           "Uvádzaj pravdivý email a chráň svoje heslo. Za činnosť zo svojho účtu zodpovedáš ty.",
           "Jeden človek má mať jeden účet. Používateľské meno nesmie byť urážlivé ani sa vydávať za niekoho iného.",
-          "Účet môžeš kedykoľvek zrušiť – napíš na {email}.",
+          "Účet môžeš kedykoľvek zmazať sám v časti Môj účet → Tvoje údaje.",
         ],
       },
       {
@@ -292,7 +292,7 @@ const cs: Record<LegalDocumentName, LegalDocument> = {
           "omezení zpracování a námitka proti zpracování na základě oprávněného zájmu,",
           "stížnost u Úřadu pro ochranu osobních údajů (uoou.gov.cz), na Slovensku u Úradu na ochranu osobných údajov SR (dataprotection.gov.sk).",
         ],
-        paragraphs: ["Žádost pošli na {email} z adresy, kterou máš u účtu. Vyřídíme ji bez zbytečného odkladu, nejpozději do 30 dní."],
+        paragraphs: ["Kopii údajů si stáhneš a účet smažeš sám v části Můj účet → Tvoje údaje. Ostatní žádosti pošli na {email} z adresy, kterou máš u účtu – vyřídíme je bez zbytečného odkladu, nejpozději do 30 dní."],
       },
       {
         heading: "Věk",
@@ -326,7 +326,7 @@ const cs: Record<LegalDocumentName, LegalDocument> = {
         items: [
           "Uváděj pravdivý email a chraň své heslo. Za činnost ze svého účtu odpovídáš ty.",
           "Jeden člověk má mít jeden účet. Uživatelské jméno nesmí být urážlivé ani se vydávat za někoho jiného.",
-          "Účet můžeš kdykoli zrušit – napiš na {email}.",
+          "Účet můžeš kdykoli smazat sám v části Můj účet → Tvoje údaje.",
         ],
       },
       {

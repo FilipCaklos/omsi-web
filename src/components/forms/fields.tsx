@@ -67,7 +67,7 @@ export function TextField({
   );
 }
 
-export function SubmitButton({ children, variant = "primary" }: { children: React.ReactNode; variant?: "primary" | "secondary" }) {
+export function SubmitButton({ children, variant = "primary" }: { children: React.ReactNode; variant?: "primary" | "secondary" | "danger" }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -78,7 +78,9 @@ export function SubmitButton({ children, variant = "primary" }: { children: Reac
         "inline-flex h-10 w-full items-center justify-center gap-2 rounded-[5px] px-4 text-sm font-semibold transition-colors disabled:cursor-wait disabled:opacity-70",
         variant === "primary"
           ? "bg-amber text-amber-ink hover:bg-amber-hover"
-          : "border border-line bg-surface text-text hover:bg-raised",
+          : variant === "danger"
+            ? "border border-alert/60 bg-alert-soft text-alert hover:bg-alert hover:text-white"
+            : "border border-line bg-surface text-text hover:bg-raised",
       ].join(" ")}
     >
       {pending && <LoaderCircle size={16} className="animate-spin" aria-hidden />}

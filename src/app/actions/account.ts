@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { db } from "@/lib/db";
@@ -13,6 +14,8 @@ import { APIError, getAuth } from "@/server/auth";
 import { passwordChangedMail } from "@/server/mail/templates";
 import { sendMailInBackground } from "@/server/mail/transport";
 import { RATE_LIMITS } from "@/server/security/rate-limit";
+import { accountDeletionBlock, deleteUserAccount } from "@/server/account/data";
+import { verifyPassword } from "@/server/security/password";
 import { AccessDeniedError, requireUser } from "@/server/session";
 
 async function currentUserOrError(attempt: number) {
@@ -157,4 +160,33 @@ export async function revokeOtherSessionsAction(): Promise<void> {
     headers: ctx.headers,
   });
   revalidatePath("/ucet");
+}
+
+/**
+ * Zmazanie vlastného účtu: potvrdenie heslom (účet s heslom) alebo prepísaním používateľského mena
+ * (prihlásenie iba cez Discord). Zmaže aj mody a všetok obsah – nedá sa vrátiť.
+ */
+export async function deleteAccountAction(state: FormState, formData: FormData): Promise<FormState> {
+  const attempt = previousAttempt(state);
+  const { user, error } = await currentUserOrError(attempt);
+  if (!user) return error;
+  if (accountDeletionBlock(user.role)) return failure(attempt, "DELETE_STAFF");
+  if (formData.get("understand") !== "on") return failure(attempt, "GENERIC", { fieldErrors: { understand: "DELETE_CONFIRM" } });
+
+  const ctx = await requestContext();
+  const blocked = await guardForm({ ctx, attempt, requireTurnstile: false, limits: [[RATE_LIMITS.changePassword, user.id]], auditActorId: user.id });
+  if (blocked) return blocked;
+
+  const credential = await db().account.findFirst({ where: { userId: user.id, providerId: "credential" }, select: { password: true } });
+  if (credential?.password) {
+    const ok = await verifyPassword({ hash: credential.password, password: field(formData, "password") ?? "" });
+    if (!ok) return failure(attempt, "GENERIC", { fieldErrors: { password: "INVALID_CREDENTIALS" } });
+  } else if ((field(formData, "username") ?? "").trim().toLowerCase() !== user.username) {
+    return failure(attempt, "GENERIC", { fieldErrors: { username: "DELETE_CONFIRM" } });
+  }
+
+  // Najprv odhlásiť (zmaže cookie relácie), potom zmazať účet
+  await getAuth().api.signOut({ headers: ctx.headers }).catch(() => undefined);
+  await deleteUserAccount(user.id);
+  redirect("/?ucet=zmazany");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePasswordAction, updateProfileAction } from "@/app/actions/account";
+import { changePasswordAction, deleteAccountAction, updateProfileAction } from "@/app/actions/account";
 import { FormAlert, SubmitButton, TextField } from "@/components/forms/fields";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { INITIAL_FORM_STATE, formatError, type FormState } from "@/lib/form-state";
@@ -109,6 +109,31 @@ export function ChangePasswordForm({ t }: { t: Dictionary }) {
       />
       <div className="sm:w-48">
         <SubmitButton>{t.account.changeSubmit}</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+/** Zmazanie účtu – heslo alebo používateľské meno + výslovné potvrdenie. */
+export function DeleteAccountForm({ t, hasPassword, username }: { t: Dictionary; hasPassword: boolean; username: string }) {
+  const [state, action] = useActionState(deleteAccountAction, INITIAL_FORM_STATE);
+  const a = t.account;
+  return (
+    <form action={action} className="space-y-3" noValidate>
+      {state.status === "error" && state.error && !state.fieldErrors && <FormAlert tone="error">{formatError(t, state.error, state.errorParams)}</FormAlert>}
+      <p className="text-sm text-muted">{a.deleteWarning}</p>
+      {hasPassword ? (
+        <TextField name="password" type="password" label={a.currentPassword} autoComplete="current-password" maxLength={128} error={fieldError(t, state, "password")} />
+      ) : (
+        <TextField name="username" label={a.deleteTypeUsername.replace("{username}", username)} maxLength={24} error={fieldError(t, state, "username")} />
+      )}
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="understand" className="mt-0.5 size-4 accent-[var(--alert)]" />
+        <span>{a.deleteUnderstand}</span>
+      </label>
+      {fieldError(t, state, "understand") && <p className="text-xs text-alert">{fieldError(t, state, "understand")}</p>}
+      <div className="sm:w-56">
+        <SubmitButton variant="danger">{a.deleteSubmit}</SubmitButton>
       </div>
     </form>
   );

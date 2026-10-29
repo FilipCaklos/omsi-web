@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { LogOut, Monitor, ShieldCheck, TriangleAlert, UserRound } from "lucide-react";
+import { FileDown, LogOut, Monitor, ShieldCheck, TriangleAlert, UserRound } from "lucide-react";
 import { revokeOtherSessionsAction, revokeSessionAction } from "@/app/actions/account";
 import { signOutAction } from "@/app/actions/auth";
-import { ChangePasswordForm, ProfileForm } from "@/components/account/account-forms";
+import { ChangePasswordForm, DeleteAccountForm, ProfileForm } from "@/components/account/account-forms";
 import { FormAlert } from "@/components/forms/fields";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -177,6 +177,25 @@ export default async function AccountPage() {
               </button>
             </form>
           )}
+        </Panel>
+
+        <Panel title={t.account.dataTitle} Icon={FileDown}>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-sm text-muted">{t.account.exportHint}</p>
+              <a href="/api/ucet/export" className="inline-flex h-9 items-center gap-1.5 rounded-[5px] border border-line px-3 text-sm hover:bg-raised">
+                <FileDown size={15} aria-hidden /> {t.account.exportButton}
+              </a>
+            </div>
+            <div className="space-y-2 rounded-[5px] border border-alert/40 p-4">
+              <h3 className="text-sm font-semibold text-alert">{t.account.deleteTitle}</h3>
+              {user.role === "MODERATOR" || user.role === "ADMIN" ? (
+                <p className="text-sm text-muted">{t.auth.errors.DELETE_STAFF}</p>
+              ) : (
+                <DeleteAccountForm t={t} hasPassword={hasPassword} username={user.username} />
+              )}
+            </div>
+          </div>
         </Panel>
       </main>
       <SiteFooter />

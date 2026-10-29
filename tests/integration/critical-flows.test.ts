@@ -406,3 +406,34 @@ describe("moje stiahnuté", () => {
     expect(await app.db().notification.count({ where: { userId: fan.id, type: "NEW_VERSION" } })).toBe(1);
   });
 });
+
+describe("vlastné údaje: export a zmazanie účtu", () => {
+  it("export obsahuje profil a obsah, nie heslo; zmazanie odstráni mody so súbormi a prepočíta hodnotenia", async () => {
+    const { exportUserData, deleteUserAccount, accountDeletionBlock } = await import("@/server/account/data");
+    const { storage } = await import("@/server/storage");
+    const other = await publishedModWithFile("cudzi-hodnoteny", await zip([["Maps/o/global.cfg", "x"]]));
+    const leaver = await app.db().user.create({ data: { name: "Odchádzajúci", email: "odchod@test.sk", username: "odchod.test", emailVerified: true } });
+    await app.db().account.create({ data: { userId: leaver.id, providerId: "credential", accountId: leaver.id, password: "$argon2id$tajne" } });
+    await app.db().review.create({ data: { modId: other.mod.id, userId: leaver.id, rating: 1, body: "Zlé hodnotenie na prepočet", bodyHtml: "" } });
+    await app.db().mod.update({ where: { id: other.mod.id }, data: { ratingAvg: 1, ratingCount: 1 } });
+
+    // Vlastný mod odchádzajúceho so súborom v úložisku
+    const own = await publishedModWithFile("vlastny-mod-odchod", await zip([["Maps/v/global.cfg", "x"]]));
+    await app.db().mod.update({ where: { id: own.mod.id }, data: { authorId: leaver.id } });
+    await app.db().modFile.update({ where: { id: own.file.id }, data: { uploaderId: leaver.id } });
+    expect(await storage().size(own.file.storageKey)).not.toBeNull();
+
+    const exported = await exportUserData(leaver.id);
+    expect(exported).toMatchObject({ username: "odchod.test", email: "odchod@test.sk", reviews: [{ rating: 1 }], mods: [{ slug: "vlastny-mod-odchod" }] });
+    expect(JSON.stringify(exported)).not.toContain("argon2");
+
+    expect(accountDeletionBlock("MODERATOR")).toBe("STAFF_ROLE");
+    expect(accountDeletionBlock("USER")).toBeNull();
+    await deleteUserAccount(leaver.id);
+
+    expect(await app.db().user.findUnique({ where: { id: leaver.id } })).toBeNull();
+    expect(await app.db().mod.findUnique({ where: { id: own.mod.id } })).toBeNull();
+    expect(await storage().size(own.file.storageKey)).toBeNull();
+    expect(await app.db().mod.findUniqueOrThrow({ where: { id: other.mod.id } })).toMatchObject({ ratingAvg: 0, ratingCount: 0 });
+  });
+});

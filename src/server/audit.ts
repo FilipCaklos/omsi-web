@@ -47,6 +47,7 @@ export const AUDIT_ACTIONS = [
   "settings.updated",
   "review.hidden",
   "comment.hidden",
+  "user.deleted",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
