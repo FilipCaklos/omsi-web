@@ -101,6 +101,12 @@ automaticky iba pri `https://` adrese. Potom nastav aj:
 - `TRUSTED_PROXIES=private_ranges` – brána potom uverí IP, ktorú pošle tvoja proxy. Bez tohto nastavenia by
   všetci návštevníci mali IP tvojej proxy a zdieľali by jeden limit.
 
+**Právne stránky** (`/podmienky`, `/ochrana-sukromia`, `/kontakt`, odkazy v pätičke a pri registrácii) doplnia
+prevádzkovateľa a kontakt z `.env`: `LEGAL_OPERATOR_NAME` (meno alebo názov, GDPR ho vyžaduje) a `CONTACT_EMAIL`
+(predvolene `kontakt@<doména>`). Schránku na vlastnej doméne zadarmo presmeruješ napr. cez Cloudflare
+**Email → Email Routing** na svoj osobný email. Lehoty uchovávania v texte zásad dodržiava úloha `privacy-retention`
+v plánovači ([src/server/jobs/retention.ts](src/server/jobs/retention.ts)) – pri zmene uprav kód aj text.
+
 Po každej zmene `.env` stačí `docker compose up -d`.
 
 ---
@@ -138,6 +144,7 @@ migráciami vrátane `unaccent` a `pg_trgm`), Redis nahrádza `ioredis-mock` a v
 | `AUTH_SECRET`, `DOWNLOAD_TOKEN_SECRET`, `IP_HASH_SECRET` | tajomstvá (min. 32 znakov) |
 | `CLIENT_IP_HEADER` | hlavička s IP od reverznej proxy pre `npm run start` (v Dockeri ju nastavuje brána: `x-real-ip`) |
 | `TRUSTED_PROXIES` | Docker brána: adresy proxy pred ňou, napr. `private_ranges` (predvolene nikto) |
+| `LEGAL_OPERATOR_NAME`, `CONTACT_EMAIL` | prevádzkovateľ a kontakt na právnych stránkach |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | voliteľné prihlásenie cez Discord (callback `${APP_URL}/api/auth/callback/discord`) |
 | `SMTP_*`, `MAIL_FROM` | odosielanie emailov (lokálne Mailpit) |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile; testovacie kľúče fungujú iba pri `APP_URL` na localhoste |

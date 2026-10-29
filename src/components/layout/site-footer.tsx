@@ -16,6 +16,11 @@ export async function SiteFooter() {
             <ShieldCheck size={15} strokeWidth={1.75} className="text-signal" aria-hidden />
             {t.footer.integrity}
           </p>
+          <nav aria-label={t.footer.legal} className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+            <Link href="/podmienky" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.terms}</Link>
+            <Link href="/ochrana-sukromia" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.privacy}</Link>
+            <Link href="/kontakt" className="underline decoration-line underline-offset-2 hover:text-text">{t.footer.contact}</Link>
+          </nav>
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1 self-start font-mono text-xs md:justify-self-end">
           <dt>{t.footer.mods}</dt>

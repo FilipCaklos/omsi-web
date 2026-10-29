@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { redis } from "@/lib/redis";
 import { sendNotificationDigests } from "@/server/mail/digest";
 import { publishDueScheduled } from "@/server/mods/releases";
+import { purgeExpiredPersonalData } from "./retention";
 import { cleanupExpiredUploads } from "@/server/uploads/service";
 
 export type Job = { name: string; intervalMs: number; run: () => Promise<unknown> };
@@ -12,6 +13,7 @@ export const JOBS: Job[] = [
   { name: "publish-scheduled", intervalMs: 60 * 1000, run: () => publishDueScheduled() },
   { name: "notification-emails", intervalMs: 5 * 60 * 1000, run: () => sendNotificationDigests() },
   { name: "cleanup-uploads", intervalMs: 15 * 60 * 1000, run: () => cleanupExpiredUploads() },
+  { name: "privacy-retention", intervalMs: 6 * 60 * 60 * 1000, run: () => purgeExpiredPersonalData() },
 ];
 
 /**

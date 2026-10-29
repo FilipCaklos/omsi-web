@@ -34,6 +34,10 @@ const envSchema = z
     SMTP_SECURE: booleanString,
     MAIL_FROM: z.string().min(3),
 
+    /** Právne stránky: kto portál prevádzkuje a kam písať (GDPR, autorské práva). Prázdne = kontakt@<doména>. */
+    LEGAL_OPERATOR_NAME: z.string().trim().max(200).default(""),
+    CONTACT_EMAIL: z.union([z.email(), z.literal("")]).default(""),
+
     TURNSTILE_SITE_KEY: z.string().min(1),
     TURNSTILE_SECRET_KEY: z.string().min(1),
 
@@ -101,6 +105,12 @@ export function env(): Env {
   }
   cached = parsed.data;
   return cached;
+}
+
+/** Kontaktný email z CONTACT_EMAIL, inak kontakt@<doména z APP_URL>. */
+export function contactEmail(): string {
+  const e = env();
+  return e.CONTACT_EMAIL || `kontakt@${new URL(e.APP_URL).hostname}`;
 }
 
 export function isDiscordEnabled(): boolean {

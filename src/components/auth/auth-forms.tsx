@@ -145,7 +145,21 @@ export function SignUpForm({ t, locale, siteKey, nonce }: WithTurnstile) {
       <div className="space-y-1">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="acceptTerms" className="mt-0.5 size-4 accent-[var(--amber)]" />
-          <span>{t.auth.signUp.acceptTerms}</span>
+          <span>
+            {t.auth.signUp.acceptTerms.split(/(\{terms\}|\{privacy\})/).map((part, index) =>
+              part === "{terms}" ? (
+                <Link key={index} href="/podmienky" target="_blank" className="text-amber underline underline-offset-2">
+                  {t.auth.signUp.termsLink}
+                </Link>
+              ) : part === "{privacy}" ? (
+                <Link key={index} href="/ochrana-sukromia" target="_blank" className="text-amber underline underline-offset-2">
+                  {t.auth.signUp.privacyLink}
+                </Link>
+              ) : (
+                part
+              ),
+            )}
+          </span>
         </label>
         {fieldError(t, state, "acceptTerms") && (
           <p className="text-xs text-alert">{fieldError(t, state, "acceptTerms")}</p>
