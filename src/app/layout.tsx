@@ -23,6 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: `${t.meta.siteName} – ${t.meta.tagline}`, template: `%s · ${t.meta.siteName}` },
     description: t.meta.description,
     applicationName: t.meta.siteName,
+    alternates: { types: { "application/rss+xml": [{ url: "/feed.xml", title: t.meta.siteName }] } },
     openGraph: {
       type: "website",
       siteName: t.meta.siteName,

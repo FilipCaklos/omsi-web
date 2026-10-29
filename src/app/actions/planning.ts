@@ -8,6 +8,7 @@ import { can } from "@/lib/rbac";
 import { localDateTimeToUtc } from "@/lib/timezone";
 import { failure, field, keepValues, previousAttempt, requestContext } from "@/server/action-guard";
 import { audit } from "@/server/audit";
+import { announceMod } from "@/server/integrations/discord";
 import { checkVersionReadiness } from "@/server/mods/publish";
 import { checkPlannedReadiness } from "@/server/mods/releases";
 import { getWorkingVersion, loadEditableMod } from "@/server/mods/wizard";
@@ -129,6 +130,7 @@ export async function announcePlannedAction(state: FormState, formData: FormData
 
   const verified = can(user.role, "mod:publish-without-review");
   await db().mod.update({ where: { id: mod.id }, data: { status: verified ? "PLANNED" : "PENDING_REVIEW" } });
+  if (verified) await announceMod(mod.id, "PLANNED");
   const request = await requestContext();
   await audit({
     action: verified ? "mod.published" : "mod.submitted",

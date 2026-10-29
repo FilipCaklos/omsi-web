@@ -13,7 +13,9 @@ import { approve, decideFile, reject, requestChanges } from "@/server/admin/mode
 import { audit } from "@/server/audit";
 import { notify } from "@/server/notifications";
 import { AccessDeniedError, requirePermission, type CurrentUser } from "@/server/session";
-import { saveSettings } from "@/server/settings";
+import { DISCORD_WEBHOOK_PATTERN, buildAnnouncement, sendDiscordWebhook } from "@/server/integrations/discord";
+import { env } from "@/lib/env";
+import { getSettings, saveSettings } from "@/server/settings";
 
 /**
  * Admin akcie sú obyčajné formuláre: po spracovaní sa presmeruje späť s ?ok=1 alebo ?chyba=KÓD,
@@ -316,11 +318,33 @@ export async function saveSettingsAction(formData: FormData): Promise<void> {
   if (!Number.isFinite(gb) || gb <= 0 || !Number.isInteger(active) || active < 1 || active > 20) {
     back(formData, "/admin/nastavenia", { ok: false, error: "GENERIC" });
   }
+  // Prázdne pole = ponechať uložený webhook (nezobrazujeme ho späť), zaškrtnuté „odstrániť“ = vypnúť
+  const current = await getSettings();
+  const webhookInput = (field(formData, "discordWebhookUrl") ?? "").trim();
+  if (webhookInput && !DISCORD_WEBHOOK_PATTERN.test(webhookInput)) back(formData, "/admin/nastavenia", { ok: false, error: "URL_INVALID" });
+  const discordWebhookUrl = formData.get("discordWebhookRemove") === "on" ? "" : webhookInput || current.discordWebhookUrl;
   await saveSettings(actor.id, {
     uploadsEnabled: formData.get("uploadsEnabled") === "on",
     registrationEnabled: formData.get("registrationEnabled") === "on",
     maxFileBytes: Math.round(gb * 1024 ** 3),
     maxActiveUploads: active,
+    discordWebhookUrl,
   });
   back(formData, "/admin/nastavenia", { ok: true });
+}
+
+/** Skúšobná správa do Discord kanála – overí, že webhook funguje. */
+export async function testDiscordWebhookAction(formData: FormData): Promise<void> {
+  await guard("settings:manage");
+  const { discordWebhookUrl } = await getSettings();
+  if (!discordWebhookUrl) back(formData, "/admin/nastavenia", { ok: false, error: "GENERIC" });
+  const ok = await sendDiscordWebhook(
+    discordWebhookUrl,
+    buildAnnouncement(
+      "RELEASED",
+      { title: "Skúšobná správa", slug: "", summary: "Webhook funguje – sem prídu oznámenia o nových modoch a verziách.", categoryName: "Test", authorName: "OMSI Depo", version: null, imageId: null },
+      env().APP_URL,
+    ),
+  );
+  back(formData, "/admin/nastavenia", ok ? { ok: true } : { ok: false, error: "DISCORD_FAILED" });
 }
