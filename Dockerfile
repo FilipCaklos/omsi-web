@@ -6,6 +6,8 @@ ARG NODE_IMAGE=node:24-bookworm-slim
 # ─── 1) Závislosti ───────────────────────────────────────────
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
+# Prisma potrebuje libssl (detekcia platformy pri generate, schema engine pri migráciách)
+RUN apt-get update  && apt-get install -y --no-install-recommends openssl  && rm -rf /var/lib/apt/lists/*
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -14,10 +16,9 @@ COPY prisma.config.ts ./
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npm ci --no-audit --no-fund
 
 # ─── 2) Build ────────────────────────────────────────────────
-FROM ${NODE_IMAGE} AS builder
+FROM deps AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate \
  && npm run build
@@ -25,6 +26,7 @@ RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma gene
 # ─── 3) Migrácie a seed (jednorazový kontajner) ───────────────
 FROM ${NODE_IMAGE} AS migrator
 WORKDIR /app
+RUN apt-get update  && apt-get install -y --no-install-recommends openssl  && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json

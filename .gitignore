@@ -1,7 +1,8 @@
 node_modules/
 .next/
 out/
-storage/
+# iba dátový priečinok v koreni projektu, nie zdrojový kód src/server/storage
+/storage/
 src/generated/
 .env
 .env.local
