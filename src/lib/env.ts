@@ -65,6 +65,12 @@ const envSchema = z
     SEVEN_ZIP_PATH: z.string().min(1).default("7zz"),
     ARCHIVE_MAX_ENTRIES: z.coerce.number().int().positive().default(200_000),
     ARCHIVE_MAX_UNCOMPRESSED_BYTES: z.coerce.number().int().positive().default(64 * 1024 ** 3),
+
+    /** VirusTotal API kľúč (virustotal.com → profil → API key); prázdne = kontrola vypnutá */
+    VIRUSTOTAL_API_KEY: z.string().trim().default(""),
+    /** Limity bezplatného API: 4 požiadavky/min, 500/deň */
+    VIRUSTOTAL_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).max(1000).default(4),
+    VIRUSTOTAL_DAILY_LIMIT: z.coerce.number().int().min(1).max(1_000_000).default(480),
   })
   .superRefine((env, ctx) => {
     if (env.STORAGE_DRIVER === "S3_COMPATIBLE") {

@@ -13,7 +13,7 @@ type Result = { ok: true } | { ok: false; error: ModerationError };
 export type QueueItem =
   | { kind: "NEW_MOD" | "NEW_VERSION"; modId: string; slug: string; title: string; author: string; version: string; files: number; inspection: number; at: Date; scheduledAt: Date | null }
   | { kind: "PLANNED"; modId: string; slug: string; title: string; author: string; at: Date }
-  | { kind: "FILE"; modId: string; slug: string; title: string; author: string; fileId: string; fileName: string; at: Date };
+  | { kind: "FILE"; modId: string; slug: string; title: string; author: string; fileId: string; fileName: string; at: Date; vtDetections: number | null; sha256: string };
 
 /** Fronta moderátora: nové mody, nové verzie, ohlásenia pripravovaných vydaní a súbory na manuálnu kontrolu. */
 export async function getQueue(): Promise<QueueItem[]> {
@@ -41,7 +41,7 @@ export async function getQueue(): Promise<QueueItem[]> {
       where: { scanStatus: "REQUIRES_MOD_INSPECTION", version: { status: { not: "PENDING_REVIEW" } } },
       orderBy: { createdAt: "asc" },
       take: 200,
-      select: { id: true, displayName: true, createdAt: true, mod: { select: { id: true, slug: true, title: true, author: { select: { username: true } } } } },
+      select: { id: true, displayName: true, createdAt: true, sha256: true, vtMalicious: true, vtSuspicious: true, vtStatus: true, mod: { select: { id: true, slug: true, title: true, author: { select: { username: true } } } } },
     }),
   ]);
   return [
@@ -67,6 +67,8 @@ export async function getQueue(): Promise<QueueItem[]> {
       fileId: f.id,
       fileName: f.displayName,
       at: f.createdAt,
+      vtDetections: f.vtStatus === "SUSPICIOUS" || f.vtStatus === "MALICIOUS" ? (f.vtMalicious ?? 0) + (f.vtSuspicious ?? 0) : null,
+      sha256: f.sha256,
     })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());
 }

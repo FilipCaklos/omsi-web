@@ -353,6 +353,10 @@ export const cs: Dictionary = {
     edit: "Upravit",
     newVersion: "Přidat novou verzi",
     awaitingInspection: "Čeká na kontrolu moderátorem",
+    vtResult: "VirusTotal {n}/{total}",
+    vtHint: "Počet antivirů, které v souboru něco našly / kolik ho zkontrolovalo. Klikni pro celý report.",
+    vtNotScanned: "Příliš velký pro VirusTotal",
+    vtNotScannedHint: "VirusTotal kontroluje soubory do 650 MB. Obsah archivu jsme zkontrolovali sami.",
     statusBanner: {
       DRAFT: "Koncept – vidíš ho jen ty.",
       PENDING_REVIEW: "Čeká na schválení moderátorem. Návštěvníci ji zatím nevidí.",
@@ -701,6 +705,7 @@ export const cs: Dictionary = {
       COMMENT_REPLY: "@{by} reagoval v „{title}“ ({modTitle})",
       REPORT_RESOLVED: "Tvoje nahlášení bylo vyřízeno.",
       REPORT_NEW: "Nové nahlášení ({reason}): {modTitle}",
+      FILE_FLAGGED: "VirusTotal: {detections} detekcí v souboru modu {modTitle}",
       SYSTEM: "{message}",
     },
     emailSubject: "Novinky z OMSI Depo ({count})",

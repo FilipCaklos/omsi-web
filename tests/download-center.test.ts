@@ -13,6 +13,7 @@ function file(kind: CenterFile["kind"], version: { id: string; version: string; 
     extension: "7z",
     sizeBytes: 1000,
     sha256: "a".repeat(64),
+    virusTotal: { status: "CLEAN", detections: 0, engines: 70 },
     scanStatus: "CLEAN",
     archiveFormat: "SEVEN_Z",
     archiveEntryCount: 0,

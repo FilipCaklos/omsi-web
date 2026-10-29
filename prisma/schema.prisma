@@ -52,6 +52,19 @@ enum FileKind {
   OLD_VERSION
 }
 
+/// Výsledok kontroly súboru antivírusmi cez VirusTotal
+enum VirusTotalStatus {
+  /// Čaká na kontrolu (alebo na zverejnenie, kým sa smie nahrať)
+  PENDING
+  CLEAN
+  /// 1 detekcia alebo „podozrivé“ – moderátor dostane upozornenie, súbor ostáva dostupný
+  SUSPICIOUS
+  /// 2 a viac detekcií – súbor sa stiahne z verejného sťahovania na manuálnu kontrolu
+  MALICIOUS
+  /// Príliš veľký pre VirusTotal (limit 650 MB) alebo kontrola vypnutá
+  NOT_SCANNED
+}
+
 /// Kompatibilita modu s openOMSI (open-source reimplementácia OMSI 2) – udáva autor
 enum OpenOmsiSupport {
   UNTESTED
@@ -207,6 +220,8 @@ enum NotificationType {
   REPORT_RESOLVED
   /// Nové nahlásenie – pre moderátorov
   REPORT_NEW
+  /// VirusTotal našiel v súbore detekcie – pre moderátorov
+  FILE_FLAGGED
   SYSTEM
 }
 
@@ -573,6 +588,16 @@ model ModFile {
   scanStatus               ScanStatus    @default(PENDING)
   scanNotes                Json?
 
+  vtStatus        VirusTotalStatus @default(PENDING)
+  /// Počet antivírusov, ktoré súbor označili ako škodlivý / podozrivý, a počet všetkých
+  vtMalicious     Int?
+  vtSuspicious    Int?
+  vtEngines       Int?
+  /// Rozbehnutá analýza po nahratí (dokončenie sa overuje v ďalších behoch plánovača)
+  vtAnalysisId    String?
+  vtCheckedAt     DateTime?
+  vtLastAttemptAt DateTime?
+
   /// Patch nadväzuje na konkrétny hlavný súbor
   patchForFileId String?
   patchFor       ModFile?  @relation("PatchFor", fields: [patchForFileId], references: [id], onDelete: SetNull)
@@ -599,6 +624,7 @@ model ModFile {
   @@index([versionId])
   @@index([scanStatus])
   @@index([sha256])
+  @@index([vtStatus, vtLastAttemptAt])
 }
 
 model ModDependency {

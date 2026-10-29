@@ -29,6 +29,11 @@ export default async function QueuePage({ searchParams }: { searchParams: AdminS
                 <span className="font-semibold">{item.title}</span>
                 {(item.kind === "NEW_MOD" || item.kind === "NEW_VERSION") && <span className="ml-2 font-mono text-xs text-muted">v{item.version}</span>}
                 {item.kind === "FILE" && <span className="ml-2 text-xs text-muted">{item.fileName}</span>}
+                {item.kind === "FILE" && item.vtDetections !== null && (
+                  <a href={`https://www.virustotal.com/gui/file/${item.sha256}`} target="_blank" rel="noopener noreferrer" className="ml-2 rounded-[3px] bg-alert-soft px-1.5 py-0.5 text-[11px] font-semibold text-alert hover:underline">
+                    VirusTotal: {item.vtDetections}
+                  </a>
+                )}
                 <span className="block font-mono text-[11px] text-muted">
                   @{item.author} · {q.submitted} {formatDateTime(locale, item.at)}
                   {(item.kind === "NEW_MOD" || item.kind === "NEW_VERSION") && ` · ${q.files}: ${item.files}`}

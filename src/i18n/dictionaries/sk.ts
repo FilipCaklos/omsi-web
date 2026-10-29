@@ -351,6 +351,10 @@ export const sk = {
     edit: "Upraviť",
     newVersion: "Pridať novú verziu",
     awaitingInspection: "Čaká na kontrolu moderátorom",
+    vtResult: "VirusTotal {n}/{total}",
+    vtHint: "Počet antivírusov, ktoré v súbore niečo našli / koľko ho skontrolovalo. Klikni pre celý report.",
+    vtNotScanned: "Príliš veľký pre VirusTotal",
+    vtNotScannedHint: "VirusTotal kontroluje súbory do 650 MB. Obsah archívu sme skontrolovali sami.",
     statusBanner: {
       DRAFT: "Koncept – vidíš ho iba ty.",
       PENDING_REVIEW: "Čaká na schválenie moderátorom. Návštevníci ju zatiaľ nevidia.",
@@ -699,6 +703,7 @@ export const sk = {
       COMMENT_REPLY: "@{by} reagoval v „{title}“ ({modTitle})",
       REPORT_RESOLVED: "Tvoje nahlásenie bolo vybavené.",
       REPORT_NEW: "Nové nahlásenie ({reason}): {modTitle}",
+      FILE_FLAGGED: "VirusTotal: {detections} detekcií v súbore modu {modTitle}",
       SYSTEM: "{message}",
     },
     emailSubject: "Novinky z OMSI Depo ({count})",

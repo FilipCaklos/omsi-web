@@ -71,7 +71,31 @@ function Integrity({ file, t }: { file: CenterFile; t: Dictionary }) {
         {file.sha256}
       </code>
       <CopyHash value={file.sha256} labels={{ copy: t.modPage.copy, copied: t.modPage.copied }} />
+      <VirusTotalBadge file={file} t={t} />
     </div>
+  );
+}
+
+/** Výsledok VirusTotal s odkazom na celý report (počet antivírusov, ktoré súbor kontrolovali). */
+function VirusTotalBadge({ file, t }: { file: CenterFile; t: Dictionary }) {
+  const vt = file.virusTotal;
+  if (vt.status === "PENDING") return null;
+  const label =
+    vt.status === "NOT_SCANNED" ? t.modPage.vtNotScanned
+    : t.modPage.vtResult.replace("{n}", String(vt.detections)).replace("{total}", String(vt.engines));
+  const tone = vt.status === "CLEAN" ? "bg-signal-soft text-signal" : vt.status === "NOT_SCANNED" ? "bg-raised text-muted" : "bg-amber-soft text-amber";
+  return vt.status === "NOT_SCANNED" ? (
+    <span className={`shrink-0 rounded-[3px] px-1.5 py-0.5 text-[11px] font-medium ${tone}`} title={t.modPage.vtNotScannedHint}>{label}</span>
+  ) : (
+    <a
+      href={`https://www.virustotal.com/gui/file/${file.sha256}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`shrink-0 rounded-[3px] px-1.5 py-0.5 text-[11px] font-medium hover:underline ${tone}`}
+      title={t.modPage.vtHint}
+    >
+      {label}
+    </a>
   );
 }
 

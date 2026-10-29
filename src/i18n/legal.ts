@@ -62,6 +62,7 @@ const sk: Record<LegalDocumentName, LegalDocument> = {
           "Cloudflare, Inc. – doručovanie stránky, ochrana pred útokmi a overenie Turnstile proti botom. Prenos do USA je krytý rámcom EU–US Data Privacy Framework a štandardnými zmluvnými doložkami.",
           "Poskytovateľ odosielania emailov – doručuje overovacie a upozorňovacie emaily (spracúva tvoju emailovú adresu a obsah správy).",
           "Discord Inc. – iba ak sa rozhodneš prihlásiť cez Discord.",
+          "VirusTotal (Google) – antivírusová kontrola súborov modov. Súbor kontrolujeme najprv podľa odtlačku SHA-256; ak ho VirusTotal nepozná, nahráme ho tam až po verejnom zverejnení modu. Nahraté súbory sú dostupné bezpečnostnej komunite VirusTotalu. Osobné údaje do VirusTotalu neposielame.",
         ],
       },
       {
@@ -111,7 +112,7 @@ const sk: Record<LegalDocumentName, LegalDocument> = {
         items: [
           "Sťahovanie je bezplatné a bez registrácie.",
           "Modifikácie sú dielom ich autorov, nie prevádzkovateľa. Pri každej sú uvedené licenčné podmienky autora (napr. zákaz ďalšieho zverejnenia, povolené repainty) – dodržuj ich.",
-          "Súbory automaticky kontrolujeme (typ súboru, obsah archívu, nebezpečné súbory) a pluginy .dll schvaľuje moderátor. Napriek tomu nevieme zaručiť, že je každý súbor bezchybný – sťahuješ a inštaluješ na vlastnú zodpovednosť a odporúčame zálohovať priečinok OMSI.",
+          "Súbory automaticky kontrolujeme (typ súboru, obsah archívu, nebezpečné súbory, antivírusy cez VirusTotal) a pluginy .dll schvaľuje moderátor. Zverejnením modu súhlasíš, že jeho súbory môžeme poslať na kontrolu do VirusTotalu. Napriek tomu nevieme zaručiť, že je každý súbor bezchybný – sťahuješ a inštaluješ na vlastnú zodpovednosť a odporúčame zálohovať priečinok OMSI.",
           "Odkaz na stiahnutie je určený pre teba a platí obmedzený čas. Hromadné sťahovanie robotmi a zdieľanie priamych odkazov na súbory nie je dovolené.",
         ],
       },
@@ -266,6 +267,7 @@ const cs: Record<LegalDocumentName, LegalDocument> = {
           "Cloudflare, Inc. – doručování stránky, ochrana před útoky a ověření Turnstile proti botům. Přenos do USA je krytý rámcem EU–US Data Privacy Framework a standardními smluvními doložkami.",
           "Poskytovatel odesílání emailů – doručuje ověřovací a upozorňovací emaily (zpracovává tvou emailovou adresu a obsah zprávy).",
           "Discord Inc. – pouze pokud se rozhodneš přihlásit přes Discord.",
+          "VirusTotal (Google) – antivirová kontrola souborů modů. Soubor kontrolujeme nejprve podle otisku SHA-256; pokud ho VirusTotal nezná, nahrajeme ho tam až po veřejném zveřejnění modu. Nahrané soubory jsou dostupné bezpečnostní komunitě VirusTotalu. Osobní údaje do VirusTotalu neposíláme.",
         ],
       },
       {
@@ -313,7 +315,7 @@ const cs: Record<LegalDocumentName, LegalDocument> = {
         items: [
           "Stahování je zdarma a bez registrace.",
           "Modifikace jsou dílem jejich autorů, nikoli provozovatele. U každé jsou uvedeny licenční podmínky autora (např. zákaz dalšího zveřejnění, povolené repainty) – dodržuj je.",
-          "Soubory automaticky kontrolujeme (typ souboru, obsah archivu, nebezpečné soubory) a pluginy .dll schvaluje moderátor. Přesto nemůžeme zaručit, že je každý soubor bezchybný – stahuješ a instaluješ na vlastní odpovědnost a doporučujeme zálohovat složku OMSI.",
+          "Soubory automaticky kontrolujeme (typ souboru, obsah archivu, nebezpečné soubory, antiviry přes VirusTotal) a pluginy .dll schvaluje moderátor. Zveřejněním modu souhlasíš, že jeho soubory můžeme poslat ke kontrole do VirusTotalu. Přesto nemůžeme zaručit, že je každý soubor bezchybný – stahuješ a instaluješ na vlastní odpovědnost a doporučujeme zálohovat složku OMSI.",
           "Odkaz ke stažení je určen pro tebe a platí omezenou dobu. Hromadné stahování roboty a sdílení přímých odkazů na soubory není dovoleno.",
         ],
       },

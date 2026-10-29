@@ -37,6 +37,7 @@ export const AUDIT_ACTIONS = [
   "file.uploaded",
   "file.approved",
   "file.rejected",
+  "file.flagged",
   "file.deleted",
   "report.created",
   "report.resolved",

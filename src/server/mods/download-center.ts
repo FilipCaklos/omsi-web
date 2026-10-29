@@ -11,6 +11,8 @@ export type CenterFile = {
   sizeBytes: number;
   sha256: string;
   scanStatus: ScanStatus;
+  /** Výsledok antivírusovej kontroly; PENDING = ešte neprebehla (alebo je kontrola vypnutá) */
+  virusTotal: { status: "PENDING" | "CLEAN" | "SUSPICIOUS" | "MALICIOUS" | "NOT_SCANNED"; detections: number; engines: number };
   archiveFormat: ArchiveFormat;
   archiveEntryCount: number;
   archiveUncompressedBytes: number | null;

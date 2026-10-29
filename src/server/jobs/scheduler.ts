@@ -4,6 +4,7 @@ import { redis } from "@/lib/redis";
 import { sendNotificationDigests } from "@/server/mail/digest";
 import { publishDueScheduled } from "@/server/mods/releases";
 import { purgeExpiredPersonalData } from "./retention";
+import { runVirusTotal } from "@/server/security/virustotal";
 import { cleanupExpiredUploads } from "@/server/uploads/service";
 
 export type Job = { name: string; intervalMs: number; run: () => Promise<unknown> };
@@ -13,6 +14,7 @@ export const JOBS: Job[] = [
   { name: "publish-scheduled", intervalMs: 60 * 1000, run: () => publishDueScheduled() },
   { name: "notification-emails", intervalMs: 5 * 60 * 1000, run: () => sendNotificationDigests() },
   { name: "cleanup-uploads", intervalMs: 15 * 60 * 1000, run: () => cleanupExpiredUploads() },
+  { name: "virustotal", intervalMs: 60 * 1000, run: () => runVirusTotal() },
   { name: "privacy-retention", intervalMs: 6 * 60 * 60 * 1000, run: () => purgeExpiredPersonalData() },
 ];
 

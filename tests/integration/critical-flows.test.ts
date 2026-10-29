@@ -300,3 +300,56 @@ describe("parametre kategórie", () => {
     expect(await checkVersionReadiness(cz.mod.id, draft.id)).toContain("ATTRIBUTES_MISSING");
   });
 });
+
+describe("VirusTotal", () => {
+  it("známy súbor podľa SHA-256, neznámy zverejnený sa nahrá a pri detekciách stiahne z verejnosti", async () => {
+    const { processVirusTotalQueue } = await import("@/server/security/virustotal");
+    const clean = await publishedModWithFile("vt-cisty", await zip([["Maps/vt1/global.cfg", "x"]]));
+    const infected = await publishedModWithFile("vt-infikovany", await zip([["Maps/vt2/global.cfg", "y"]]));
+    const hidden = await publishedModWithFile("vt-neverejny", await zip([["Maps/vt3/global.cfg", "z"]]), "PENDING_REVIEW");
+    await app.db().modFile.updateMany({ where: { id: { notIn: [clean.file.id, infected.file.id, hidden.file.id] } }, data: { vtStatus: "CLEAN" } });
+
+    const uploads: { name: string; size: number }[] = [];
+    const api = {
+      lookup: async (sha256: string) => (sha256 === clean.file.sha256 ? { malicious: 0, suspicious: 0, undetected: 60, harmless: 10 } : null),
+      upload: async ({ blob, name, size }: { blob: Blob; name: string; size: number }) => {
+        expect(blob.size).toBe(size);
+        uploads.push({ name, size });
+        return "analysis-1";
+      },
+      analysis: async () => ({ malicious: 4, suspicious: 1, undetected: 60, harmless: 5 }),
+    };
+    const now = new Date();
+    await processVirusTotalQueue({ api, perRun: 100, dailyLimit: 1000, now });
+
+    expect(await app.db().modFile.findUniqueOrThrow({ where: { id: clean.file.id } })).toMatchObject({ vtStatus: "CLEAN", vtEngines: 70, vtMalicious: 0 });
+    // Nezverejnený mod sa do VirusTotalu nenahrá (súbory tam vidí bezpečnostná komunita)
+    expect(uploads.map((u) => u.name)).toEqual([infected.file.originalFilename]);
+    expect(await app.db().modFile.findUniqueOrThrow({ where: { id: hidden.file.id } })).toMatchObject({ vtStatus: "PENDING", vtAnalysisId: null });
+    expect(await app.db().modFile.findUniqueOrThrow({ where: { id: infected.file.id } })).toMatchObject({ vtStatus: "PENDING", vtAnalysisId: "analysis-1" });
+
+    // O minútu je analýza hotová: 5 detekcií → škodlivý, súbor ide na manuálnu kontrolu a moderátor dostane upozornenie
+    await processVirusTotalQueue({ api, perRun: 100, dailyLimit: 1000, now: new Date(now.getTime() + 2 * 60 * 1000) });
+    expect(await app.db().modFile.findUniqueOrThrow({ where: { id: infected.file.id } })).toMatchObject({ vtStatus: "MALICIOUS", vtMalicious: 4, vtSuspicious: 1, scanStatus: "REQUIRES_MOD_INSPECTION" });
+    expect(await app.findDownloadableFile(infected.file.id, null)).toBeNull();
+    expect(await app.db().notification.count({ where: { userId: moderator.id, type: "FILE_FLAGGED" } })).toBe(1);
+  });
+
+  it("dodrží limit požiadaviek za beh", async () => {
+    const { processVirusTotalQueue } = await import("@/server/security/virustotal");
+    const a = await publishedModWithFile("vt-limit-a", await zip([["Maps/la/global.cfg", "a"]]));
+    const b = await publishedModWithFile("vt-limit-b", await zip([["Maps/lb/global.cfg", "b"]]));
+    await app.db().modFile.updateMany({ where: { id: { notIn: [a.file.id, b.file.id] } }, data: { vtStatus: "CLEAN" } });
+    let calls = 0;
+    const api = {
+      lookup: async () => {
+        calls += 1;
+        return { malicious: 0, suspicious: 0, undetected: 70, harmless: 0 };
+      },
+      upload: async () => "x",
+      analysis: async () => null,
+    };
+    expect(await processVirusTotalQueue({ api, perRun: 1, dailyLimit: 1000 })).toBe(1);
+    expect(calls).toBe(1);
+  });
+});
