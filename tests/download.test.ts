@@ -20,7 +20,7 @@ describe("download token", () => {
     const now = Date.now();
     const token = signDownloadToken(SECRET, FILE, "ip", now);
     expect(verifyDownloadToken(SECRET, token, "ip", now + (DOWNLOAD_TOKEN_TTL_SECONDS - 5) * 1000).ok).toBe(true);
-    expect(verifyDownloadToken(SECRET, token, "ip", now + (DOWNLOAD_TOKEN_TTL_SECONDS + 5) * 1000)).toEqual({ ok: false, reason: "EXPIRED" });
+    expect(verifyDownloadToken(SECRET, token, "ip", now + (DOWNLOAD_TOKEN_TTL_SECONDS + 5) * 1000)).toMatchObject({ ok: false, reason: "EXPIRED", payload: { fileId: FILE } });
   });
 
   it("podvrhnuté ID súboru alebo predĺžená platnosť → BAD_SIGNATURE", () => {

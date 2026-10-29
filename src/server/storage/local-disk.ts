@@ -1,6 +1,5 @@
 import "server-only";
-import { createReadStream } from "node:fs";
-import { copyFile, mkdir, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, open, rename, rm, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { assertValidKey, type ByteRange, type StorageProvider } from "./types";
@@ -35,7 +34,15 @@ export class LocalDiskStorage implements StorageProvider {
       await rename(localPath, target);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EXDEV") throw error;
-      await copyFile(localPath, target);
+      // Iný disk: kópia vedľa cieľa a až potom atómový rename – pod kľúčom nikdy nie je polovičný súbor
+      const temp = `${target}.${process.pid}.tmp`;
+      try {
+        await copyFile(localPath, temp);
+        await rename(temp, target);
+      } catch (copyError) {
+        await rm(temp, { force: true });
+        throw copyError;
+      }
       await unlink(localPath);
     }
   }
@@ -44,13 +51,19 @@ export class LocalDiskStorage implements StorageProvider {
     const target = this.resolve(key);
     await mkdir(path.dirname(target), { recursive: true });
     const temp = `${target}.${process.pid}.tmp`;
-    await writeFile(temp, body, { mode: 0o640 });
-    await rename(temp, target);
+    try {
+      await writeFile(temp, body, { mode: 0o640 });
+      await rename(temp, target);
+    } catch (error) {
+      await rm(temp, { force: true });
+      throw error;
+    }
   }
 
   async read(key: string, range?: ByteRange): Promise<Readable> {
-    const file = this.resolve(key);
-    return createReadStream(file, range ? { start: range.start, end: range.end, highWaterMark: 256 * 1024 } : { highWaterMark: 256 * 1024 });
+    // Súbor sa otvorí vopred: chýbajúci objekt vyhodí chybu ešte pred odoslaním hlavičiek odpovede
+    const handle = await open(this.resolve(key), "r");
+    return handle.createReadStream({ ...(range ?? {}), highWaterMark: 256 * 1024, autoClose: true });
   }
 
   async size(key: string): Promise<number | null> {

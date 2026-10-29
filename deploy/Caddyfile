@@ -1,0 +1,25 @@
+# Vstupná brána pred aplikáciou (docker-compose služba „gateway“).
+#
+# Next.js hlavičku X-Forwarded-For od klienta neprepisuje, takže bez proxy by si ju útočník mohol
+# podvrhnúť a obísť limity podľa IP. Caddy hodnoty od nedôveryhodných klientov ignoruje a aplikácii
+# pošle zistenú IP v hlavičke X-Real-IP (CLIENT_IP_HEADER=x-real-ip).
+#
+# Za vlastnou reverznou proxy (Caddy/nginx na hostiteľovi, Cloudflare Tunnel) nastav v .env
+# TRUSTED_PROXIES=private_ranges, inak by všetci návštevníci mali IP tej proxy.
+{
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+		# IP klienta = prvá nedôveryhodná adresa sprava (hodnoty vľavo môže podvrhnúť klient)
+		trusted_proxies_strict
+	}
+}
+
+:3000 {
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {client_ip}
+		# Sťahovanie viacgigabajtových súborov sa streamuje bez bufferovania
+		flush_interval -1
+	}
+}

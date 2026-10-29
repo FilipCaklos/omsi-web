@@ -1,6 +1,6 @@
 import "server-only";
 import { createReadStream } from "node:fs";
-import { unlink } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { Readable } from "node:stream";
 import {
   DeleteObjectCommand,
@@ -53,7 +53,8 @@ export class S3CompatibleStorage implements StorageProvider {
       leavePartsOnError: false,
     });
     await upload.done();
-    await unlink(localPath);
+    // Objekt je už uložený – zlyhané zmazanie dočasného súboru nesmie zrušiť úspešný upload
+    await rm(localPath, { force: true }).catch((error: unknown) => console.error("[storage] dočasný súbor ostal", localPath, error));
   }
 
   async putBuffer(key: string, body: Buffer, contentType: string): Promise<void> {

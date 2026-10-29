@@ -1,0 +1,44 @@
+# Overenie, že projekt sa dá zostaviť z čistého klonu repozitára – presne tak, ako na serveri.
+# (Lokálny build vidí aj súbory, ktoré .gitignore omylom vynechal z commitu.)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Žiadny zdrojový súbor nesmie byť ignorovaný
+        run: |
+          ignored="$(git ls-files --others --ignored --exclude-standard -- src prisma tests scripts public deploy | grep -v '^src/generated/' || true)"
+          if [ -n "$ignored" ]; then
+            echo "Tieto súbory vynecháva .gitignore, hoci patria do repozitára:"
+            echo "$ignored"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build (runner + migrator)
+        run: |
+          docker build --target runner -t omsi-depo:ci .
+          docker build --target migrator -t omsi-depo-migrate:ci .

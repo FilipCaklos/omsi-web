@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { open, rm, statfs, truncate } from "node:fs/promises";
 import { z } from "zod";
-import type { FileKind, Prisma } from "@/generated/prisma/client";
+import type { FileKind, ModFile, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/redis";
@@ -17,6 +17,9 @@ import { newFileKey, storage, uploadTempDir, uploadTempPath } from "@/server/sto
 
 /** Rezerva voľného miesta na disku nad veľkosť nahrávaného súboru */
 const DISK_HEADROOM_BYTES = 2 * 1024 ** 3;
+/** Ako často bežiaca kontrola potvrdí, že žije; upratovanie považuje SCANNING bez heartbeatu 2 h za zaseknutý */
+const SCAN_HEARTBEAT_MS = 10 * 60 * 1000;
+const SCAN_STALE_MS = 2 * 60 * 60 * 1000;
 
 export const initUploadSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -259,6 +262,13 @@ export async function processUpload(uploadId: string): Promise<void> {
   if (!row || row.status !== "SCANNING") return;
   const tempPath = await uploadTempPath(uploadId);
   const e = env();
+  // Kontrola viacgigabajtového súboru môže trvať dlho – pravidelný „heartbeat“ (updatedAt)
+  // zabráni upratovaniu, aby ju považovalo za zaseknutú a zmazalo súbor počas spracovania
+  const heartbeat = setInterval(() => {
+    void db()
+      .uploadSession.updateMany({ where: { id: uploadId, status: "SCANNING" }, data: { updatedAt: new Date() } })
+      .catch(() => undefined);
+  }, SCAN_HEARTBEAT_MS);
 
   try {
     const result = await inspectFile(tempPath, row.extension as ModFileExtension, {
@@ -290,13 +300,15 @@ export async function processUpload(uploadId: string): Promise<void> {
 
     const key = newFileKey(row.extension);
     const mimeType = MOD_FILE_MIME[row.extension as ModFileExtension];
-    await storage().putFile(key, tempPath, mimeType);
+    const target = storage();
+    await target.putFile(key, tempPath, mimeType);
     await db().uploadSession.update({
       where: { id: uploadId },
       data: {
         status: "COMPLETED",
         sha256: result.sha256,
         storageKey: key,
+        storageDriver: target.driver,
         mimeType,
         archiveFormat: result.archiveFormat,
         archiveEntries: result.entries ?? undefined,
@@ -320,6 +332,8 @@ export async function processUpload(uploadId: string): Promise<void> {
     console.error("[upload] spracovanie zlyhalo", uploadId, error);
     await rm(tempPath, { force: true });
     await db().uploadSession.update({ where: { id: uploadId }, data: { status: "FAILED", errorCode: "PROCESSING_FAILED" } });
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
@@ -328,7 +342,7 @@ export async function cancelUpload(user: CurrentUser, uploadId: string): Promise
   if (row.resultFileId) throw new HttpError(409, "UPLOAD_ALREADY_ATTACHED");
   if (row.status === "SCANNING") throw new HttpError(409, "UPLOAD_PROCESSING");
   await rm(await uploadTempPath(uploadId), { force: true });
-  if (row.storageKey) await storage().delete(row.storageKey);
+  if (row.storageKey) await storage(row.storageDriver ?? undefined).delete(row.storageKey);
   await db().uploadSession.update({ where: { id: uploadId }, data: { status: "EXPIRED", storageKey: null, errorCode: "CANCELLED" } });
 }
 
@@ -347,8 +361,14 @@ export type AttachInput = {
   sortOrder?: number;
 };
 
-/** Vytvorí ModFile z hotového uploadu (volá Upload Wizard). Kontrola vlastníctva je na volajúcom. */
-export async function createModFileFromUpload(userId: string, input: AttachInput, tx: Prisma.TransactionClient = db()) {
+/**
+ * Vytvorí ModFile z hotového uploadu (volá Upload Wizard). Kontrola vlastníctva je na volajúcom.
+ * Beží v transakcii: upload sa „zaberie“ podmieneným update, takže dvojklik nevytvorí dva súbory
+ * nad tým istým objektom v úložisku (zmazanie jedného by rozbilo druhý).
+ */
+export async function createModFileFromUpload(userId: string, input: AttachInput, tx?: Prisma.TransactionClient): Promise<ModFile> {
+  if (!tx) return db().$transaction((inner) => createModFileFromUpload(userId, input, inner));
+
   const upload = await tx.uploadSession.findUnique({ where: { id: input.uploadId } });
   if (!upload || upload.userId !== userId) throw new HttpError(404, "UPLOAD_NOT_FOUND");
   if (upload.status !== "COMPLETED" || !upload.storageKey || !upload.sha256 || !upload.scanStatus || !upload.mimeType) {
@@ -368,7 +388,7 @@ export async function createModFileFromUpload(userId: string, input: AttachInput
       mimeType: upload.mimeType,
       sizeBytes: upload.sizeBytes,
       sha256: upload.sha256,
-      storageDriver: env().STORAGE_DRIVER,
+      storageDriver: upload.storageDriver ?? env().STORAGE_DRIVER,
       storageKey: upload.storageKey,
       archiveFormat: upload.archiveFormat ?? "NONE",
       archiveEntries: upload.archiveEntries ?? undefined,
@@ -384,7 +404,9 @@ export async function createModFileFromUpload(userId: string, input: AttachInput
       uploaderId: userId,
     },
   });
-  await tx.uploadSession.update({ where: { id: upload.id }, data: { resultFileId: file.id } });
+  // Súbežná požiadavka čaká na zámok riadku a po commite prvej už nenájde resultFileId = null
+  const claimed = await tx.uploadSession.updateMany({ where: { id: upload.id, resultFileId: null }, data: { resultFileId: file.id } });
+  if (claimed.count !== 1) throw new HttpError(409, "UPLOAD_ALREADY_ATTACHED");
   return file;
 }
 
@@ -392,7 +414,7 @@ export async function createModFileFromUpload(userId: string, input: AttachInput
 
 /** Zmaže nedokončené/expirované uploady a nepriradené obrázky. Volá plánovač (src/server/jobs). */
 export async function cleanupExpiredUploads(now = new Date()): Promise<{ uploads: number; images: number }> {
-  const stuckScanning = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  const stuckScanning = new Date(now.getTime() - SCAN_STALE_MS);
   const expired = await db().uploadSession.findMany({
     where: {
       resultFileId: null,
@@ -401,28 +423,32 @@ export async function cleanupExpiredUploads(now = new Date()): Promise<{ uploads
         { status: "SCANNING", updatedAt: { lt: stuckScanning } },
       ],
     },
-    select: { id: true, storageKey: true },
+    select: { id: true, status: true, updatedAt: true, storageKey: true, storageDriver: true },
     take: 500,
   });
+  let removed = 0;
   for (const upload of expired) {
-    await rm(await uploadTempPath(upload.id), { force: true });
-    if (upload.storageKey) await storage().delete(upload.storageKey).catch(() => undefined);
-    await db().uploadSession.update({
-      where: { id: upload.id },
+    // Najprv podmienene prepnúť stav: ak medzitým prišiel heartbeat alebo pripojenie k modu, súbor nemažeme
+    const claimed = await db().uploadSession.updateMany({
+      where: { id: upload.id, status: upload.status, updatedAt: upload.updatedAt, resultFileId: null },
       data: { status: "EXPIRED", storageKey: null, errorCode: "EXPIRED" },
     });
+    if (claimed.count !== 1) continue;
+    removed += 1;
+    await rm(await uploadTempPath(upload.id), { force: true });
+    if (upload.storageKey) await storage(upload.storageDriver ?? undefined).delete(upload.storageKey).catch(() => undefined);
   }
 
   const orphanBefore = new Date(now.getTime() - env().UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000);
   const orphans = await db().mediaImage.findMany({
     where: { modId: null, devlogId: null, kind: { in: ["SCREENSHOT", "DEVLOG"] }, createdAt: { lt: orphanBefore } },
-    select: { id: true, storageKey: true, fullKey: true },
+    select: { id: true, storageKey: true, fullKey: true, storageDriver: true },
     take: 500,
   });
   for (const image of orphans) {
-    await storage().delete(image.storageKey).catch(() => undefined);
-    await storage().delete(image.fullKey).catch(() => undefined);
+    await storage(image.storageDriver).delete(image.storageKey).catch(() => undefined);
+    await storage(image.storageDriver).delete(image.fullKey).catch(() => undefined);
     await db().mediaImage.delete({ where: { id: image.id } });
   }
-  return { uploads: expired.length, images: orphans.length };
+  return { uploads: removed, images: orphans.length };
 }

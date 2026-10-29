@@ -157,6 +157,7 @@ async function addImage(ownerId: string, target: { modId?: string; devlogId?: st
       devlogId: target.devlogId ?? null,
       storageKey: keys.thumb,
       fullKey: keys.full,
+      storageDriver: env().STORAGE_DRIVER,
       width: full.info.width,
       height: full.info.height,
       sizeBytes: full.data.length,

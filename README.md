@@ -83,6 +83,10 @@ git pull
 docker compose up -d --build
 ```
 
+Na porte 3000 počúva brána `gateway` (Caddy, [deploy/Caddyfile](deploy/Caddyfile)), samotná aplikácia nie je
+zverejnená. Brána určí skutočnú IP návštevníka a podvrhnutú hlavičku `X-Forwarded-For` od klienta ignoruje –
+inak by sa dali obísť limity na prihlásenie, registráciu a sťahovanie.
+
 Migrácie databázy sa spustia automaticky (služba `migrate`). Dáta sú v Docker volumes `pgdata`, `redisdata`
 a `modstorage`. Záloha databázy: `docker compose exec postgres pg_dump -U omsi omsi_depo > zaloha.sql`.
 
@@ -94,7 +98,8 @@ automaticky iba pri `https://` adrese. Potom nastav aj:
 - skutočný SMTP server (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_SECURE`, `MAIL_FROM`) –
   v predvolenom stave sa všetky emaily zachytávajú v Mailpite na `http://127.0.0.1:8025`. Hodnoty SMTP
   v sekcii `x-app-env` v `docker-compose.yml` majú prednosť pred `.env`, takže ich treba zmeniť tam,
-- `CLIENT_IP_HEADER` podľa proxy (napr. `cf-connecting-ip` za Cloudflare).
+- `TRUSTED_PROXIES=private_ranges` – brána potom uverí IP, ktorú pošle tvoja proxy. Bez tohto nastavenia by
+  všetci návštevníci mali IP tvojej proxy a zdieľali by jeden limit.
 
 Po každej zmene `.env` stačí `docker compose up -d`.
 
@@ -131,7 +136,8 @@ migráciami vrátane `unaccent` a `pg_trgm`), Redis nahrádza `ioredis-mock` a v
 | `DATABASE_URL`, `DATABASE_POOL_MAX` | PostgreSQL a veľkosť poolu |
 | `REDIS_URL` | rate limiting, deduplikácia stiahnutí, zámky plánovača |
 | `AUTH_SECRET`, `DOWNLOAD_TOKEN_SECRET`, `IP_HASH_SECRET` | tajomstvá (min. 32 znakov) |
-| `CLIENT_IP_HEADER` | hlavička s IP od reverznej proxy (berie sa posledná hodnota) |
+| `CLIENT_IP_HEADER` | hlavička s IP od reverznej proxy pre `npm run start` (v Dockeri ju nastavuje brána: `x-real-ip`) |
+| `TRUSTED_PROXIES` | Docker brána: adresy proxy pred ňou, napr. `private_ranges` (predvolene nikto) |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | voliteľné prihlásenie cez Discord (callback `${APP_URL}/api/auth/callback/discord`) |
 | `SMTP_*`, `MAIL_FROM` | odosielanie emailov (lokálne Mailpit) |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile; testovacie kľúče fungujú iba pri `APP_URL` na localhoste |

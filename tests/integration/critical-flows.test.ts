@@ -147,6 +147,14 @@ describe("bezpečnosť uploadu", () => {
     await expect(upload(patched, "slip.zip")).rejects.toMatchObject({ code: "REJECTED" });
   });
 
+  it("dvojité pripojenie toho istého uploadu vytvorí iba jeden súbor", async () => {
+    const { mod, version, uploaded } = await publishedModWithFile("dvojklik", await zip([["Maps/a/global.cfg", "x"]]), "PENDING_REVIEW");
+    await expect(
+      app.createModFileFromUpload(authorId, { uploadId: uploaded.id, modId: mod.id, versionId: version.id, kind: "OPTIONAL", displayName: "Kópia" }),
+    ).rejects.toMatchObject({ code: "UPLOAD_ALREADY_ATTACHED" });
+    expect(await app.db().modFile.count({ where: { modId: mod.id } })).toBe(1);
+  });
+
   it(".dll plugin ide na manuálnu kontrolu", async () => {
     const status = await upload(await zip([["plugins/IBIS.dll", randomBytes(1000)]]), "plugin.zip");
     expect(status.scanStatus).toBe("REQUIRES_MOD_INSPECTION");

@@ -80,8 +80,9 @@ export async function inspectFile(filePath: string, extension: ModFileExtension,
     return finish({ ...base("NONE"), findings: [{ code: "EXECUTABLE_FILE" }] });
   }
 
-  const expected = EXPECTED_FORMAT[extension];
-  if (expected && detected !== expected) {
+  // Prípona bez známeho formátu (.hof, .ams) nesmie skrývať archív ani PDF – inak by obišla kontrolu obsahu
+  const expected = EXPECTED_FORMAT[extension] ?? "UNKNOWN";
+  if (detected !== expected) {
     return finish({ ...base("NONE"), findings: [{ code: "MAGIC_MISMATCH" }] });
   }
 

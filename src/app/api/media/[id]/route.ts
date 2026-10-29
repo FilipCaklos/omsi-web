@@ -25,6 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     select: {
       storageKey: true,
       fullKey: true,
+      storageDriver: true,
       ownerId: true,
       mod: { select: { status: true, authorId: true } },
       devlog: { select: { mod: { select: { status: true, authorId: true } } } },
@@ -42,7 +43,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const key = variant === "full" ? image.fullKey : image.storageKey;
-  const size = await storage().size(key);
+  const size = await storage(image.storageDriver).size(key);
   if (size === null) return notFound();
 
   const etag = `"${id}-${variant}"`;
@@ -50,7 +51,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return new Response(null, { status: 304, headers: { ETag: etag } });
   }
 
-  const stream = await storage().read(key);
+  const stream = await storage(image.storageDriver).read(key);
   return new Response(Readable.toWeb(stream) as ReadableStream<Uint8Array>, {
     headers: {
       "Content-Type": "image/webp",

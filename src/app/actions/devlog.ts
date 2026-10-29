@@ -94,11 +94,11 @@ export async function deleteDevlogAction(formData: FormData): Promise<void> {
   if (!id.safeParse(devlogId).success) return;
   const devlog = await db().devlog.findUnique({
     where: { id: devlogId },
-    select: { id: true, authorId: true, mod: { select: { slug: true, id: true } }, images: { select: { storageKey: true, fullKey: true } } },
+    select: { id: true, authorId: true, mod: { select: { slug: true, id: true } }, images: { select: { storageKey: true, fullKey: true, storageDriver: true } } },
   });
   if (!devlog || (devlog.authorId !== user.id && !can(user.role, "content:hide"))) return;
   await db().devlog.delete({ where: { id: devlog.id } });
-  await Promise.all(devlog.images.flatMap((i) => [storage().delete(i.storageKey), storage().delete(i.fullKey)]));
+  await Promise.all(devlog.images.flatMap((i) => [storage(i.storageDriver).delete(i.storageKey), storage(i.storageDriver).delete(i.fullKey)]));
   revalidatePath(`/mod/${devlog.mod.slug}`);
   revalidatePath(`/nahrat/${devlog.mod.id}/vydanie`);
 }

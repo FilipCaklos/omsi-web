@@ -347,10 +347,10 @@ export async function deleteImageAction(modId: string, imageId: string): Promise
   const user = await requireUser();
   const mod = await loadEditableMod(user, modId);
   if (!mod) return;
-  const image = await db().mediaImage.findFirst({ where: { id: imageId, modId: mod.id }, select: { id: true, storageKey: true, fullKey: true, isPrimary: true } });
+  const image = await db().mediaImage.findFirst({ where: { id: imageId, modId: mod.id }, select: { id: true, storageKey: true, fullKey: true, storageDriver: true, isPrimary: true } });
   if (!image) return;
   await db().mediaImage.delete({ where: { id: image.id } });
-  await Promise.all([storage().delete(image.storageKey), storage().delete(image.fullKey)]);
+  await Promise.all([storage(image.storageDriver).delete(image.storageKey), storage(image.storageDriver).delete(image.fullKey)]);
   if (image.isPrimary) {
     const next = await db().mediaImage.findFirst({ where: { modId: mod.id, kind: "SCREENSHOT" }, orderBy: { sortOrder: "asc" }, select: { id: true } });
     if (next) await db().mediaImage.update({ where: { id: next.id }, data: { isPrimary: true } });

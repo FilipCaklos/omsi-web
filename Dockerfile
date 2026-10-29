@@ -3,11 +3,16 @@
 
 ARG NODE_IMAGE=node:24-bookworm-slim
 
+# ─── 0) Spoločný základ ──────────────────────────────────────
+# Prisma potrebuje libssl (detekcia platformy, schema engine pri migráciách) vo všetkých fázach
+FROM ${NODE_IMAGE} AS base
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
+
 # ─── 1) Závislosti ───────────────────────────────────────────
-FROM ${NODE_IMAGE} AS deps
+FROM base AS deps
 WORKDIR /app
-# Prisma potrebuje libssl (detekcia platformy pri generate, schema engine pri migráciách)
-RUN apt-get update  && apt-get install -y --no-install-recommends openssl  && rm -rf /var/lib/apt/lists/*
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
@@ -24,9 +29,8 @@ RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma gene
  && npm run build
 
 # ─── 3) Migrácie a seed (jednorazový kontajner) ───────────────
-FROM ${NODE_IMAGE} AS migrator
+FROM base AS migrator
 WORKDIR /app
-RUN apt-get update  && apt-get install -y --no-install-recommends openssl  && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
@@ -63,7 +67,7 @@ RUN apt-get update \
  && rm /tmp/7z.tar.xz
 
 # ─── 4) Produkčný runtime ────────────────────────────────────
-FROM ${NODE_IMAGE} AS runner
+FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

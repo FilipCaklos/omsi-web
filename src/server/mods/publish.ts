@@ -61,13 +61,14 @@ export async function publishVersion(versionId: string, actorId: string): Promis
         data: { kind: "OLD_VERSION" },
       });
     }
-    const mod = await tx.mod.findUniqueOrThrow({ where: { id: version.modId }, select: { publishedAt: true, currentVersionId: true } });
+    const mod = await tx.mod.findUniqueOrThrow({ where: { id: version.modId }, select: { publishedAt: true, currentVersionId: true, status: true } });
     firstRelease = mod.currentVersionId === null;
     await tx.plannedRelease.updateMany({ where: { modId: version.modId, releasedAt: null }, data: { releasedAt: now } });
     await tx.mod.update({
       where: { id: version.modId },
       data: {
-        status: "PUBLISHED",
+        // Mod skrytý/odstránený moderátorom zostáva skrytý – nová verzia ho nesmie vrátiť na web
+        status: mod.status === "HIDDEN" || mod.status === "REMOVED" ? mod.status : "PUBLISHED",
         publishedAt: mod.publishedAt ?? now,
         lastUpdatedAt: now,
         currentVersionId: versionId,

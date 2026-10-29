@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { CATEGORY_ICONS } from "@/lib/category-icons";
-import { canAssignRole, canBan, type AppRole, type Permission } from "@/lib/rbac";
+import { canAssignRole, canBan, canManageOwned, type AppRole, type Permission } from "@/lib/rbac";
 import { safeRedirectPath } from "@/lib/validation/auth";
 import { field } from "@/server/action-guard";
 import { approve, decideFile, reject, requestChanges } from "@/server/admin/moderation";
@@ -34,6 +34,11 @@ function back(formData: FormData, fallback: string, outcome: { ok: true } | { ok
 }
 
 const id = z.string().regex(/^[a-z0-9]{10,40}$/);
+
+/** Skrytie obsahu: moderátor nesmie skryť obsah používateľa s vyššou rolou (napr. administrátora). */
+function canHideModOf(actor: CurrentUser, author: { id: string; role: string }): boolean {
+  return canManageOwned(actor, { id: author.id, role: author.role as Exclude<AppRole, "GUEST"> }, "content:hide", "content:hide");
+}
 
 // ───────────────────────────── Moderácia ─────────────────────────────
 
@@ -73,9 +78,13 @@ export async function resolveReportAction(formData: FormData): Promise<void> {
   const status = field(formData, "status") === "DISMISSED" ? "DISMISSED" : "RESOLVED";
   const note = (field(formData, "note") ?? "").trim().slice(0, 1000);
   const report = id.safeParse(reportId).success
-    ? await db().report.findUnique({ where: { id: reportId }, select: { id: true, status: true, reporterId: true, modId: true, reviewId: true, mod: { select: { title: true, slug: true } } } })
+    ? await db().report.findUnique({ where: { id: reportId }, select: { id: true, status: true, reporterId: true, modId: true, reviewId: true, mod: { select: { title: true, slug: true, author: { select: { id: true, role: true } } } } } })
     : null;
   if (!report || report.status !== "OPEN") back(formData, "/admin/nahlasenia", { ok: false, error: "NOTHING_PENDING" });
+
+  if (formData.get("hideMod") === "on" && report.modId && report.mod && !canHideModOf(actor, report.mod.author)) {
+    back(formData, "/admin/nahlasenia", { ok: false, error: "FORBIDDEN" });
+  }
 
   await db().report.update({ where: { id: report.id }, data: { status, resolutionNote: note || null, resolvedById: actor.id, resolvedAt: new Date() } });
   if (formData.get("hideMod") === "on" && report.modId) {
@@ -114,14 +123,26 @@ export async function setModVisibilityAction(formData: FormData): Promise<void> 
   const modId = field(formData, "modId") ?? "";
   const visibility = field(formData, "visibility");
   const mod = id.safeParse(modId).success
-    ? await db().mod.findUnique({ where: { id: modId }, select: { id: true, slug: true, status: true, currentVersionId: true, plannedRelease: { select: { id: true } } } })
+    ? await db().mod.findUnique({ where: { id: modId }, select: {
+          id: true,
+          slug: true,
+          status: true,
+          currentVersionId: true,
+          author: { select: { id: true, role: true } },
+          plannedRelease: { select: { id: true } },
+          versions: { where: { status: "SCHEDULED" }, select: { id: true }, take: 1 },
+        },
+      })
     : null;
   if (!mod) back(formData, "/admin/mody", { ok: false, error: "MOD_NOT_FOUND" });
+  if (!canHideModOf(actor, mod.author)) back(formData, "/admin/mody", { ok: false, error: "FORBIDDEN" });
 
   const status =
     visibility === "hide" ? "HIDDEN"
     : visibility === "remove" ? "REMOVED"
     : mod.currentVersionId ? "PUBLISHED"
+    // Schválené vydanie s odpočítavaním musí po obnovení ostať naplánované, inak by sa nikdy neodomklo
+    : mod.versions.length > 0 ? "SCHEDULED"
     : mod.plannedRelease ? "PLANNED"
     : "DRAFT";
   await db().mod.update({ where: { id: mod.id }, data: { status } });

@@ -1,7 +1,8 @@
-node_modules/
-.next/
-out/
-# iba dátový priečinok v koreni projektu, nie zdrojový kód src/server/storage
+# Výstupy buildu a dáta iba v koreni projektu – neukotvený vzor (napr. „storage/“) by vynechal
+# aj rovnomenný zdrojový priečinok (src/server/storage) a build na serveri by zlyhal
+/node_modules/
+/.next/
+/out/
 /storage/
 src/generated/
 .env
@@ -9,7 +10,7 @@ src/generated/
 *.tsbuildinfo
 next-env.d.ts
 npm-debug.log*
-coverage/
+/coverage/
 
 # Lokálne nástroje
 .claude/

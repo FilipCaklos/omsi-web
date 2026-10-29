@@ -83,6 +83,14 @@ describe("kontrola ZIP archívov", () => {
     expect((await inspectFile(writeFixture("x.pdf", html), "pdf", options)).verdict).toBe("REJECTED");
   });
 
+  it("archív premenovaný na .ams / .hof → REJECTED (obchádzka kontroly obsahu)", async () => {
+    const zip = await buildZip([{ name: "setup.exe" }]);
+    expect((await inspectFile(writeFixture("skript.ams", zip), "ams", options)).findings[0]?.code).toBe("MAGIC_MISMATCH");
+    expect((await inspectFile(writeFixture("linka.hof", zip), "hof", options)).verdict).toBe("REJECTED");
+    const ams = Buffer.from("[announcement]\nKonečná zastávka\n", "utf8");
+    expect((await inspectFile(writeFixture("ok.ams", ams), "ams", options)).verdict).toBe("CLEAN");
+  });
+
   it("poškodený ZIP → REJECTED", async () => {
     const zip = await buildZip([{ name: "a.txt" }]);
     const broken = zip.subarray(0, zip.length - 30);

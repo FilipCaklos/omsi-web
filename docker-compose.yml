@@ -7,6 +7,8 @@ x-app-env: &app-env
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
   STORAGE_LOCAL_ROOT: /data/storage
+  # IP klienta nastavuje brána (deploy/Caddyfile) – hlavičku od klienta prepíše
+  CLIENT_IP_HEADER: x-real-ip
 
 services:
   postgres:
@@ -70,8 +72,9 @@ services:
     env_file: .env
     environment:
       <<: *app-env
-    ports:
-      - "3000:3000"
+    # Port nie je zverejnený priamo – požiadavky idú iba cez bránu
+    expose:
+      - "3000"
     volumes:
       - modstorage:/data/storage
     depends_on:
@@ -80,6 +83,19 @@ services:
       redis:
         condition: service_healthy
       mailpit:
+        condition: service_started
+
+  gateway:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/32}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      app:
         condition: service_started
 
 volumes:

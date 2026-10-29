@@ -93,8 +93,9 @@ export async function storeScreenshot(params: {
 
   const processed = await processScreenshot(params.input, params.filename);
   const keys = newImageKeys();
-  await storage().putBuffer(keys.thumb, processed.thumb, "image/webp");
-  await storage().putBuffer(keys.full, processed.full, "image/webp");
+  const target = storage();
+  await target.putBuffer(keys.thumb, processed.thumb, "image/webp");
+  await target.putBuffer(keys.full, processed.full, "image/webp");
 
   const sortOrder = params.modId
     ? await db().mediaImage.count({ where: { modId: params.modId, kind: params.kind } })
@@ -106,6 +107,7 @@ export async function storeScreenshot(params: {
       modId: params.modId,
       storageKey: keys.thumb,
       fullKey: keys.full,
+      storageDriver: target.driver,
       width: processed.width,
       height: processed.height,
       sizeBytes: processed.full.length,

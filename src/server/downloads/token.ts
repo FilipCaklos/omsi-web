@@ -1,12 +1,16 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const DOWNLOAD_TOKEN_TTL_SECONDS = 30 * 60;
+/** Naviazanie prerušeného sťahovania (Range od stredu) funguje s tým istým odkazom ešte 24 hodín po expirácii. */
+export const DOWNLOAD_RESUME_GRACE_SECONDS = 24 * 60 * 60;
 
 export type TokenPayload = { fileId: string; expiresAt: number };
 
 export type TokenCheck =
   | { ok: true; payload: TokenPayload }
-  | { ok: false; reason: "MALFORMED" | "BAD_SIGNATURE" | "EXPIRED" };
+  | { ok: false; reason: "MALFORMED" | "BAD_SIGNATURE" }
+  /** Podpis je platný, iba vypršal čas – payload umožní naviazanie sťahovania v ochrannej lehote */
+  | { ok: false; reason: "EXPIRED"; payload: TokenPayload };
 
 function mac(secret: string, body: string, binding: string): string {
   return createHmac("sha256", secret).update(`${body}|${binding}`).digest("base64url");
@@ -32,6 +36,6 @@ export function verifyDownloadToken(secret: string, token: string, binding: stri
   const given = Buffer.from(signature);
   if (expected.length !== given.length || !timingSafeEqual(expected, given)) return { ok: false, reason: "BAD_SIGNATURE" };
   const expiresAt = Number(exp);
-  if (expiresAt * 1000 < now) return { ok: false, reason: "EXPIRED" };
+  if (expiresAt * 1000 < now) return { ok: false, reason: "EXPIRED", payload: { fileId, expiresAt } };
   return { ok: true, payload: { fileId, expiresAt } };
 }

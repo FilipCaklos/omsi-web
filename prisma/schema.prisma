@@ -578,6 +578,8 @@ model MediaImage {
   storageKey String    @unique
   /// Kľúč plnej (re-enkódovanej) WebP verzie
   fullKey    String    @unique
+  /// Úložisko, do ktorého sa obrázok zapísal (pri prechode LOCAL → S3 sa staré čítajú z disku)
+  storageDriver StorageDriver @default(LOCAL_DISK)
   width      Int
   height     Int
   sizeBytes  Int
@@ -817,6 +819,8 @@ model UploadSession {
   sha256                   String?        @db.Char(64)
   /// Výsledok kontroly po dokončení uploadu – pri pripojení k modu sa prenesie do ModFile
   storageKey               String?        @unique
+  /// Úložisko, do ktorého processUpload zapísal súbor – prenesie sa do ModFile
+  storageDriver            StorageDriver?
   mimeType                 String?
   archiveFormat            ArchiveFormat?
   archiveEntries           Json?

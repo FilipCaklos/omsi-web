@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import { findDownloadableFile } from "@/server/downloads/access";
 import { recordDownload } from "@/server/downloads/counter";
 import { contentDisposition, parseRange } from "@/server/downloads/range";
-import { verifyDownloadToken } from "@/server/downloads/token";
+import { DOWNLOAD_RESUME_GRACE_SECONDS, verifyDownloadToken } from "@/server/downloads/token";
 import { runAfterResponse } from "@/server/http";
 import { getClientIp, hashIp } from "@/server/security/ip";
 import { getUserForHeaders } from "@/server/session";
@@ -26,18 +26,30 @@ function plain(status: number, message: string): Response {
 
 type Params = { params: Promise<{ token: string }> };
 
+/** Naväzujúca požiadavka správcu sťahovania: Range od nenulového bajtu (nie nové stiahnutie). */
+function isResume(range: string | null): boolean {
+  const match = range ? /^\s*bytes\s*=\s*(\d+)-\d*\s*$/i.exec(range) : null;
+  return match !== null && Number(match[1]) > 0;
+}
+
 async function handle(request: Request, { params }: Params, method: "GET" | "HEAD"): Promise<Response> {
   const { token } = await params;
   const ipHash = hashIp(getClientIp(request.headers));
   const check = verifyDownloadToken(env().DOWNLOAD_TOKEN_SECRET, token, ipHash);
-  if (!check.ok) {
-    return check.reason === "EXPIRED"
-      ? plain(410, "Platnosť odkazu vypršala. Vráť sa na stránku modu a klikni na Stiahnuť znova.")
-      : plain(403, "Odkaz na stiahnutie je neplatný alebo patrí inému pripojeniu.");
+  let fileId: string;
+  if (check.ok) {
+    fileId = check.payload.fileId;
+  } else if (check.reason === "EXPIRED" && isResume(request.headers.get("range")) && check.payload.expiresAt + DOWNLOAD_RESUME_GRACE_SECONDS >= Date.now() / 1000) {
+    // Prerušené sťahovanie veľkej mapy sa dá dokončiť aj po vypršaní 30-minútového odkazu
+    fileId = check.payload.fileId;
+  } else if (check.reason === "EXPIRED") {
+    return plain(410, "Platnosť odkazu vypršala. Vráť sa na stránku modu a klikni na Stiahnuť znova.");
+  } else {
+    return plain(403, "Odkaz na stiahnutie je neplatný alebo patrí inému pripojeniu.");
   }
 
   const viewer = await getUserForHeaders(request.headers);
-  const file = await findDownloadableFile(check.payload.fileId, viewer);
+  const file = await findDownloadableFile(fileId, viewer);
   if (!file) return plain(404, "Súbor už nie je dostupný.");
 
   const size = (await storage(file.storageDriver).size(file.storageKey)) ?? -1;
@@ -80,7 +92,14 @@ async function handle(request: Request, { params }: Params, method: "GET" | "HEA
     runAfterResponse(() => recordDownload({ fileId: file.id, modId: file.modId, userId: viewer?.id ?? null, ipHash }));
   }
 
-  const stream = await storage(file.storageDriver).read(file.storageKey, { start, end });
+  let stream: Readable;
+  try {
+    stream = await storage(file.storageDriver).read(file.storageKey, { start, end });
+  } catch (error) {
+    // Objekt zmizol medzi kontrolou veľkosti a otvorením (moderácia, upratovanie)
+    console.error("[download] objekt sa nedá otvoriť", file.id, error);
+    return plain(503, "Súbor je dočasne nedostupný. Skús záložný mirror alebo to skús neskôr.");
+  }
   request.signal.addEventListener("abort", () => stream.destroy(), { once: true });
   return new Response(Readable.toWeb(stream) as ReadableStream<Uint8Array>, { status, headers });
 }
