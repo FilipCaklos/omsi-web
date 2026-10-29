@@ -63,8 +63,8 @@ Potrebuješ Docker Engine s Compose v2 (Debian/Ubuntu: `curl -fsSL https://get.d
 `openssl` a `curl`. Funguje na x86_64 aj ARM64 (napr. Raspberry Pi 5).
 
 ```bash
-git clone https://github.com/<účet>/omsi-depo.git
-cd omsi-depo
+git clone https://github.com/FilipCaklos/omsi-web.git
+cd omsi-web
 ./scripts/setup.sh
 ```
 
