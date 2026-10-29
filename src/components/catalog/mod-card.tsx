@@ -3,6 +3,7 @@ import { Download, ImageOff, Star, TriangleAlert } from "lucide-react";
 import type { AppLocale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { formatBytes, formatExtension, formatNumber } from "@/lib/format";
+import { worksInOpenOmsi } from "@/lib/open-omsi";
 import type { ModCardData } from "@/server/catalog";
 
 export function ModThumb({ imageId, alt, label }: { imageId: string | null; alt: string; label: string }) {
@@ -69,6 +70,11 @@ export function ModCard({ mod, locale, t }: { mod: ModCardData; locale: AppLocal
           </p>
         </div>
         <p className="line-clamp-2 text-sm text-muted">{mod.summary}</p>
+        {worksInOpenOmsi(mod.openOmsi) && (
+          <p className="self-start rounded-[3px] bg-signal-soft px-1.5 py-0.5 text-[11px] font-medium text-signal">
+            {mod.openOmsi === "EXCLUSIVE" ? t.openOmsi.badgeExclusive : `${t.openOmsi.badge} ✓`}
+          </p>
+        )}
         {mod.requires4GbPatch && (
           <p className="inline-flex items-center gap-1 self-start rounded-[3px] bg-alert-soft px-1.5 py-0.5 text-[11px] font-medium text-alert">
             <TriangleAlert size={12} strokeWidth={2} aria-hidden />

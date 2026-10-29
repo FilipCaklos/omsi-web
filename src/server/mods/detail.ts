@@ -182,6 +182,7 @@ async function buildDetail(slug: string, viewer: Viewer, locale: AppLocale) {
     category: { slug: mod.category.slug, name: locale === "cs" ? mod.category.nameCs : mod.category.nameSk },
     subcategory: mod.subcategory ? { slug: mod.subcategory.slug, name: locale === "cs" ? mod.subcategory.nameCs : mod.subcategory.nameSk } : null,
     vehicleModel: mod.vehicleModel,
+    openOmsi: mod.openOmsi,
     parameters: modParameters(await getCategoryFields(mod.categoryId), mod.attributes, mod.category.slug, locale),
     tags: mod.tags,
     brands: mod.brands.map((b) => b.brand),

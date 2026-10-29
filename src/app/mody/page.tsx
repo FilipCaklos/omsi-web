@@ -33,6 +33,7 @@ const paramsSchema = z.object({
   znacka: slugParam,
   dopravca: slugParam,
   bez4gb: z.literal("1").optional().catch(undefined),
+  openomsi: z.literal("1").optional().catch(undefined),
   zoradit: z.enum(SORT_OPTIONS).optional().catch(undefined),
   strana: z.coerce.number().int().min(1).max(1000).catch(1),
 });
@@ -50,6 +51,7 @@ async function parse(searchParams: SearchParams): Promise<Parsed> {
     znacka: first(raw.znacka) || undefined,
     dopravca: first(raw.dopravca) || undefined,
     bez4gb: first(raw.bez4gb),
+    openomsi: first(raw.openomsi),
     zoradit: first(raw.zoradit) || undefined,
     strana: first(raw.strana) ?? 1,
   });
@@ -127,6 +129,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     brandId: brand?.id ?? null,
     operatorId: operator?.id ?? null,
     without4gb: params.bez4gb === "1",
+    openOmsi: params.openomsi === "1",
     attributes: attributeFilters,
     sort: (params.zoradit as SortOption | undefined) ?? null,
     page: params.strana,
@@ -135,7 +138,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const pageHref = (page: number) => {
     const qs = new URLSearchParams();
-    for (const key of ["q", "kategoria", "podkategoria", "znacka", "dopravca", "bez4gb", "zoradit"] as const) {
+    for (const key of ["q", "kategoria", "podkategoria", "znacka", "dopravca", "bez4gb", "openomsi", "zoradit"] as const) {
       const value = params[key];
       if (value) qs.set(key, value);
     }
@@ -151,7 +154,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const resetHref = resetQs.size > 0 ? `/mody?${resetQs.toString()}` : "/mody";
 
   const heading = category ? (locale === "cs" ? category.nameCs : category.nameSk) : t.search.title;
-  const hasFilters = Boolean(params.podkategoria || params.znacka || params.dopravca || params.bez4gb || params.zoradit || attributeParams.length > 0);
+  const hasFilters = Boolean(params.podkategoria || params.znacka || params.dopravca || params.bez4gb || params.openomsi || params.zoradit || attributeParams.length > 0);
   const sortLabels: Record<SortOption, string> = {
     najnovsie: t.catalog.sortNewest,
     aktualizovane: t.catalog.sortUpdated,
@@ -217,6 +220,10 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="bez4gb" value="1" defaultChecked={params.bez4gb === "1"} className="size-4 accent-[var(--amber)]" />
               {t.catalog.only4gb}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="openomsi" value="1" defaultChecked={params.openomsi === "1"} className="size-4 accent-[var(--amber)]" />
+              {t.openOmsi.filter}
             </label>
             <div className="flex items-center gap-2 pt-1">
               <button type="submit" className="h-8 rounded-[5px] bg-amber px-3 text-xs font-semibold text-amber-ink hover:bg-amber-hover">

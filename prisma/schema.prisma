@@ -52,6 +52,16 @@ enum FileKind {
   OLD_VERSION
 }
 
+/// Kompatibilita modu s openOMSI (open-source reimplementácia OMSI 2) – udáva autor
+enum OpenOmsiSupport {
+  UNTESTED
+  WORKS
+  PARTIAL
+  NOT_WORKING
+  /// Mod je určený iba pre openOMSI
+  EXCLUSIVE
+}
+
 /// Typ vlastného poľa kategórie (parametre modu, napr. mesto pri mape, dĺžka pri autobuse)
 enum CategoryFieldType {
   TEXT
@@ -422,6 +432,7 @@ model Mod {
   attributes      Json         @default("{}")
 
   requires4GbPatch Boolean       @default(false)
+  openOmsi         OpenOmsiSupport @default(UNTESTED)
   licenseTerms     LicenseTerm[] @default([])
   licenseNote      String?
   youtubeVideoId   String?

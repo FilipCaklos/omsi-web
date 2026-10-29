@@ -15,6 +15,7 @@ import { VERSION_PATTERN, getWorkingVersion, loadEditableMod } from "@/server/mo
 import { getCategoryFields } from "@/server/mods/category-fields";
 import { categoryFacets } from "@/server/mods/reference-data";
 import { fieldInputName, parseAttributeForm } from "@/lib/category-fields";
+import { parseOpenOmsi } from "@/lib/open-omsi";
 import { AccessDeniedError, requireUser, type CurrentUser } from "@/server/session";
 import { storage } from "@/server/storage";
 import { createModFileFromUpload } from "@/server/uploads/service";
@@ -167,6 +168,7 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
       tags: field(formData, "tags") ?? "",
       youtube: field(formData, "youtube") ?? "",
       requires4gb: formData.get("requires4gb") === "on" ? "on" : "",
+      openOmsi: field(formData, "openOmsi") ?? "",
       brandIds: strings("brandIds").join(","),
       operatorIds: strings("operatorIds").join(","),
     };
@@ -214,6 +216,7 @@ export async function saveDetailsAction(state: FormState, formData: FormData): P
         tags: parsed.data.tags,
         youtubeVideoId: youtubeId,
         requires4GbPatch: parsed.data.requires4gb,
+        openOmsi: parseOpenOmsi(field(formData, "openOmsi")),
       },
     }),
     db().modBrand.deleteMany({ where: { modId: mod.id } }),

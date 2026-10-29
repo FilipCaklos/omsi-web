@@ -287,6 +287,13 @@ describe("parametre kategórie", () => {
     const withAi = await searchMods("sk", { ...filters, attributes: { krajina: "sk", ai_premavka: true } });
     expect(withAi.items.map((m) => m.slug)).toEqual(["mapa-slovensko"]);
 
+    // Filter „Funguje v openOMSI“ – iba WORKS a EXCLUSIVE, nie PARTIAL ani neoverené
+    await app.db().mod.update({ where: { id: sk.mod.id }, data: { openOmsi: "WORKS" } });
+    await app.db().mod.update({ where: { id: cz.mod.id }, data: { openOmsi: "PARTIAL" } });
+    const openOmsi = await searchMods("sk", { ...filters, openOmsi: true });
+    expect(openOmsi.items.map((m) => m.slug)).toEqual(["mapa-slovensko"]);
+    expect(openOmsi.items[0]?.openOmsi).toBe("WORKS");
+
     // Mapa bez povinného mesta neprejde kontrolou pred odoslaním novej verzie
     const draft = await app.db().modVersion.create({ data: { modId: cz.mod.id, version: "1.1.0", status: "DRAFT" } });
     await app.db().mod.update({ where: { id: cz.mod.id }, data: { attributes: { krajina: "cz" } } });

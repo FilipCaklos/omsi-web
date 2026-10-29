@@ -186,6 +186,9 @@ Limit z `.env` je pritom vždy horná hranica.
   autobus: dĺžka, podlaha, pohon…). Autor ich vyplní v kroku Popis, zobrazia sa pri mode, sú súčasťou vyhľadávania
   a vybrané slúžia ako filtre v katalógu. Administrátor ich spravuje v `/admin/kategorie` → Parametre; predvolené
   polia sú v [src/server/mods/reference-data.ts](src/server/mods/reference-data.ts) a seed ich iba doplní, úpravy neprepíše.
+- **openOMSI:** autor pri mode uvedie kompatibilitu s [openOMSI](https://github.com/turbo-devv/openOMSI)
+  (open-source verzia OMSI 2 pre Linux, macOS a Windows) – funguje, čiastočne, nefunguje, iba pre openOMSI.
+  Kompatibilné mody majú odznak na karte a v katalógu je filter „Funguje v openOMSI“.
 - Recenzie (1 na používateľa, nie na vlastný mod) sú oddelené od hlásení chýb, ktoré majú pole na `logfile.txt`.
 - Upload Wizard má 6 krokov a koncept sa ukladá na server. „Moje modifikácie“ umožňujú vydať novú verziu.
 - Pripravované vydania majú tri režimy (presný dátum, obdobie, TBA), stav vývoja po častiach a devlogy s diskusiou.

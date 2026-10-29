@@ -489,6 +489,20 @@ export const cs: Dictionary = {
       REJECTED: "Zamítnutá",
     },
   },
+  openOmsi: {
+    label: "Kompatibilita s openOMSI",
+    hint: "openOMSI je open-source verze OMSI 2, která běží i na Linuxu a macOS. Pokud jsi mod v ní zkoušel, dej vědět ostatním.",
+    filter: "Funguje v openOMSI",
+    badge: "openOMSI",
+    badgeExclusive: "Pouze openOMSI",
+    values: {
+      UNTESTED: "Neověřeno",
+      WORKS: "Funguje",
+      PARTIAL: "Funguje částečně",
+      NOT_WORKING: "Nefunguje",
+      EXCLUSIVE: "Pouze pro openOMSI",
+    },
+  },
   wizard: {
     title: "Nahrát modifikaci",
     steps: {

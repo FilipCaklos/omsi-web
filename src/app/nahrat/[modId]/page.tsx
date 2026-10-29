@@ -98,6 +98,7 @@ export default async function WizardPage({ params, searchParams }: Props) {
           tags: mod.tags.join(", "),
           youtube: mod.youtubeVideoId ? `https://www.youtube.com/watch?v=${mod.youtubeVideoId}` : "",
           requires4gb: mod.requires4GbPatch,
+          openOmsi: mod.openOmsi,
           brandIds: mod.brands.map((b) => b.brandId),
           operatorIds: mod.operators.map((o) => o.operatorId),
         }}

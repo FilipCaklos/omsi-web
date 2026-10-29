@@ -9,6 +9,7 @@ import type { AppLocale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { fieldInputName, type Attributes, type FieldDef } from "@/lib/category-fields";
 import { INITIAL_FORM_STATE, formatError } from "@/lib/form-state";
+import { OPEN_OMSI_URL, OPEN_OMSI_VALUES, type OpenOmsiSupport } from "@/lib/open-omsi";
 
 type Option = { id: string; name: string };
 
@@ -49,6 +50,7 @@ export function DetailsForm({
     tags: string;
     youtube: string;
     requires4gb: boolean;
+    openOmsi: OpenOmsiSupport;
     brandIds: string[];
     operatorIds: string[];
   };
@@ -152,6 +154,24 @@ export function DetailsForm({
           </div>
         </fieldset>
       )}
+
+      <div className="space-y-1">
+        <label htmlFor="field-openOmsi" className="block text-sm font-medium">{t.openOmsi.label}</label>
+        <select
+          id="field-openOmsi"
+          name="openOmsi"
+          defaultValue={draft?.openOmsi ?? initial.openOmsi}
+          className="h-10 w-full rounded-[5px] border border-line bg-bg px-2 text-sm sm:w-72"
+        >
+          {OPEN_OMSI_VALUES.map((value) => (
+            <option key={value} value={value}>{t.openOmsi.values[value]}</option>
+          ))}
+        </select>
+        <p className="text-xs text-muted">
+          {t.openOmsi.hint}{" "}
+          <a href={OPEN_OMSI_URL} target="_blank" rel="noopener noreferrer" className="text-amber underline underline-offset-2">github.com/turbo-devv/openOMSI</a>
+        </p>
+      </div>
 
       <TextField name="youtube" label={w.youtube} defaultValue={draft?.youtube ?? initial.youtube} required={false} maxLength={200} error={err("youtube")} />
 

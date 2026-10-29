@@ -487,6 +487,20 @@ export const sk = {
       REJECTED: "Zamietnutá",
     },
   },
+  openOmsi: {
+    label: "Kompatibilita s openOMSI",
+    hint: "openOMSI je open-source verzia OMSI 2, ktorá beží aj na Linuxe a macOS. Ak si mod v nej skúšal, daj vedieť ostatným.",
+    filter: "Funguje v openOMSI",
+    badge: "openOMSI",
+    badgeExclusive: "Iba openOMSI",
+    values: {
+      UNTESTED: "Neoverené",
+      WORKS: "Funguje",
+      PARTIAL: "Funguje čiastočne",
+      NOT_WORKING: "Nefunguje",
+      EXCLUSIVE: "Iba pre openOMSI",
+    },
+  },
   wizard: {
     title: "Nahrať modifikáciu",
     steps: {

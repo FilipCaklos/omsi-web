@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
 import type { Attributes } from "@/lib/category-fields";
+import type { OpenOmsiSupport } from "@/lib/open-omsi";
 import { db } from "@/lib/db";
 import type { AppLocale } from "@/i18n/config";
 
@@ -16,6 +17,7 @@ const modCardSelect = {
   ratingAvg: true,
   ratingCount: true,
   requires4GbPatch: true,
+  openOmsi: true,
   publishedAt: true,
   lastUpdatedAt: true,
   author: { select: { username: true, name: true } },
@@ -54,6 +56,7 @@ export type ModCardData = {
   ratingAvg: number;
   ratingCount: number;
   requires4GbPatch: boolean;
+  openOmsi: OpenOmsiSupport;
   publishedAt: Date | null;
 };
 
@@ -75,6 +78,7 @@ function toCard(row: ModCardRow, locale: AppLocale): ModCardData {
     ratingAvg: row.ratingAvg,
     ratingCount: row.ratingCount,
     requires4GbPatch: row.requires4GbPatch,
+    openOmsi: row.openOmsi,
     publishedAt: row.publishedAt,
   };
 }
@@ -331,6 +335,8 @@ export type SearchFilters = {
   brandId: string | null;
   operatorId: string | null;
   without4gb: boolean;
+  /** Iba mody, ktoré podľa autora fungujú v openOMSI */
+  openOmsi?: boolean;
   /** Filtre podľa parametrov kategórie (z parseAttributeFilters) – JSONB obsahovanie */
   attributes?: Attributes;
   sort: SortOption | null;
@@ -360,6 +366,7 @@ export async function searchMods(locale: AppLocale, filters: SearchFilters): Pro
     );
   }
   if (filters.without4gb) conditions.push(Prisma.sql`m."requires4GbPatch" = false`);
+  if (filters.openOmsi) conditions.push(Prisma.sql`m."openOmsi" IN ('WORKS', 'EXCLUSIVE')`);
   for (const [key, value] of Object.entries(filters.attributes ?? {})) {
     // @> využije GIN index (jsonb_path_ops); pri MULTISELECT [hodnota] znamená „obsahuje túto možnosť“
     conditions.push(Prisma.sql`m."attributes" @> ${JSON.stringify({ [key]: value })}::jsonb`);

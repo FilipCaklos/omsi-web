@@ -35,6 +35,7 @@ export async function refreshSearchExtra(modId: string): Promise<void> {
     select: {
       categoryId: true,
       attributes: true,
+      openOmsi: true,
       category: { select: { nameSk: true, nameCs: true } },
       subcategory: { select: { nameSk: true, nameCs: true } },
       brands: { select: { brand: { select: { name: true } } } },
@@ -54,6 +55,7 @@ export async function refreshSearchExtra(modId: string): Promise<void> {
     ...mod.operators.flatMap((o) => [o.operator.name, o.operator.city ?? ""]),
     // Parametre kategórie: mesto mapy, vozidlo repaintu, názvy vybraných možností
     ...attributeSearchTerms(await getCategoryFields(mod.categoryId), readAttributes(mod.attributes)),
+    ...(mod.openOmsi === "WORKS" || mod.openOmsi === "EXCLUSIVE" ? ["openOMSI", "open omsi"] : []),
   ].filter((p): p is string => Boolean(p));
   await db().mod.update({ where: { id: modId }, data: { searchExtra: [...new Set(parts)].join(" ").slice(0, 2000) } });
 }

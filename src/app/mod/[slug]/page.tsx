@@ -31,6 +31,7 @@ import type { Dictionary } from "@/i18n/dictionaries/sk";
 import { getDictionary } from "@/i18n/server";
 import { db } from "@/lib/db";
 import { formatDate, formatNumber, plural } from "@/lib/format";
+import { OPEN_OMSI_URL, worksInOpenOmsi } from "@/lib/open-omsi";
 import { getModDetail, type ModDetail } from "@/server/mods/detail";
 import { getCurrentUser } from "@/server/session";
 
@@ -130,8 +131,22 @@ function Sidebar({ mod, t }: { mod: ModDetail; t: Dictionary }) {
           <ul className="divide-y divide-line">{recommended.map(depItem)}</ul>
         </div>
       )}
-      {(mod.parameters.length > 0 || mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
+      {(mod.parameters.length > 0 || mod.openOmsi !== "UNTESTED" || mod.vehicleModel || mod.brands.length > 0 || mod.operators.length > 0 || mod.tags.length > 0) && (
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-[5px] border border-line bg-surface p-4 text-sm">
+        {mod.openOmsi !== "UNTESTED" && (
+          <>
+            <dt className="text-muted">
+              <a href={OPEN_OMSI_URL} target="_blank" rel="noopener noreferrer" className="hover:text-text">openOMSI</a>
+            </dt>
+            <dd>
+              {worksInOpenOmsi(mod.openOmsi) ? (
+                <Link href="/mody?openomsi=1" className="text-signal hover:text-amber">{t.openOmsi.values[mod.openOmsi]}</Link>
+              ) : (
+                t.openOmsi.values[mod.openOmsi]
+              )}
+            </dd>
+          </>
+        )}
         {mod.parameters.map((p) => (
           <Fragment key={p.label}>
             <dt className="text-muted">{p.label}</dt>
